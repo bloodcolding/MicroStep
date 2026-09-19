@@ -27,6 +27,7 @@ export function renderDimensionCards() {
 }
 
 function attributeBarWidth(value) {
-  const ratio = Math.log10(value + 1) / Math.log10(1001);
+  // 六维池满分参照 10000（与雷达图统一口径，对齐产品量纲天花板）。
+  const ratio = Math.log10(value + 1) / Math.log10(10001);
   return Math.round(clamp(ratio * 100, 4, 100));
 }

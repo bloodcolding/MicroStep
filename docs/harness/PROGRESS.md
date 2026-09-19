@@ -16,8 +16,7 @@
 
 1. （可选）路线 B 剩余项：server 路由表驱动、事件 dataclass 类型化
 2. （可选）路线 C：产品机制补完（疲劳惩罚/防刷递减/衰减/结项爆发，逐个走四步法，见 产品方案.md 规划蓝图）
-3. （建议）AGENTS.md 速查表 Check 命令更新为：`python -m unittest tests.test_domain tests.test_store; python tests\smoke.py`（待用户确认）
-4. （小项）favicon 404：可加一个 frontend/favicon.ico 消除控制台报错
+3. （可选）方案五 dogfood：先真实使用 1-2 周，用事件流数据给路线 C 排序
 
 ## Suspended Tasks（暂存任务区）
 
