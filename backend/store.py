@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .domain import (
+    DIMENSION_META,
     MAX_EQUIPPED_TITLES,
     TASK_EFFECT_DIMENSION_SET,
     TITLE_BONUS_DIMENSIONS,
@@ -166,6 +167,16 @@ class EventStore:
         self.ensure_initialized()
         self.ensure_daily_ticks()
 
+    @staticmethod
+    def _validate_epic_fields(title: str, main_dimension: str, title_bonus_dimension: str) -> None:
+        """里程碑字段的唯一校验点（创建与更新共用）。"""
+        if not title.strip():
+            raise ValueError("请填写 Epic 标题")
+        if main_dimension not in DIMENSION_META or main_dimension == "san":
+            raise ValueError("主维度不合法")
+        if title_bonus_dimension not in TITLE_BONUS_DIMENSIONS:
+            raise ValueError("称号加成属性不合法")
+
     def get_state(self) -> dict[str, Any]:
         self._ensure_ready()
         events = self.read_events()
@@ -181,6 +192,7 @@ class EventStore:
         title_emoji: str = "🏅",
     ) -> dict[str, Any]:
         self._ensure_ready()
+        self._validate_epic_fields(title, main_dimension, title_bonus_dimension)
         event = {
             "type": "EPIC_CREATED",
             "id": str(uuid.uuid4()),
@@ -214,8 +226,7 @@ class EventStore:
         epic = state["epics"].get(epic_id)
         if not epic:
             raise KeyError("里程碑不存在")
-        if title_bonus_dimension not in TITLE_BONUS_DIMENSIONS:
-            raise ValueError("称号加成属性不合法")
+        self._validate_epic_fields(title, main_dimension, title_bonus_dimension)
         new_title = title.strip()
         if not new_title:
             raise ValueError("请填写里程碑名称")
@@ -238,6 +249,8 @@ class EventStore:
 
     def complete_epic(self, epic_id: str, engraving: str) -> dict[str, Any]:
         self._ensure_ready()
+        if len(engraving.strip()) < 2:
+            raise ValueError("请写下 1-2 句结项铭文")
         state = self.get_state()
         epic = state["epics"].get(epic_id)
         if not epic:
@@ -266,6 +279,8 @@ class EventStore:
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
         self._ensure_ready()
+        if not title.strip():
+            raise ValueError("请填写 Task 标题")
         state = self.get_state()
         if epic_id:
             epic = state["epics"].get(epic_id)

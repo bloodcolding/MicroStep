@@ -137,15 +137,45 @@ class EpicCommandTests(StoreTestCase):
                 title_emoji="🏅",
             )
 
-    def test_complete_epic_validation_layers(self) -> None:
-        # 现状：铭文长度校验在 HTTP 层（server.py），store 层不做长度校验。
+    def test_complete_epic_validates_engraving(self) -> None:
+        # 校验收敛后：铭文长度校验统一在 store 层（HTTP 层复用同一规则）。
         epic = self.store.create_epic(
             title="里程碑", description="", main_dimension="professional",
             title_bonus_dimension="professional", title_bonus_percent=10,
         )
-        self.store.complete_epic(epic["id"], "一")  # store 层接受任意铭文
+        with self.assertRaises(ValueError):
+            self.store.complete_epic(epic["id"], "一")  # 少于 2 字
+        with self.assertRaises(ValueError):
+            self.store.complete_epic(epic["id"], "   ")  # 空白同样拒绝
+        self.store.complete_epic(epic["id"], "完整铭文")
         with self.assertRaises(ValueError):
             self.store.complete_epic(epic["id"], "再次结项")  # 已完成
+
+    def test_create_epic_validates_fields(self) -> None:
+        with self.assertRaises(ValueError):
+            self.store.create_epic(
+                title="  ", description="", main_dimension="professional",
+                title_bonus_dimension="professional", title_bonus_percent=10,
+            )
+        with self.assertRaises(ValueError):
+            self.store.create_epic(
+                title="标题", description="", main_dimension="san",
+                title_bonus_dimension="professional", title_bonus_percent=10,
+            )
+        with self.assertRaises(ValueError):
+            self.store.create_epic(
+                title="标题", description="", main_dimension="bogus",
+                title_bonus_dimension="professional", title_bonus_percent=10,
+            )
+        with self.assertRaises(ValueError):
+            self.store.create_epic(
+                title="标题", description="", main_dimension="professional",
+                title_bonus_dimension="san", title_bonus_percent=10,
+            )
+
+    def test_create_task_validates_title(self) -> None:
+        with self.assertRaises(ValueError):
+            self.store.create_task("   ", None, effects=[{"dimension": "knowledge", "delta": 5}])
 
 
 class TitleCommandTests(StoreTestCase):

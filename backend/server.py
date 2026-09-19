@@ -62,20 +62,11 @@ def _get_events_payload(target_store: EventStore) -> dict[str, Any]:
 
 
 def _post_create_epic(target_store: EventStore, body: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
-    title = str(body.get("title", "")).strip()
-    if not title:
-        raise ValueError("请填写 Epic 标题")
-    main_dimension = str(body.get("main_dimension") or "professional")
-    if main_dimension not in DIMENSION_META or main_dimension == "san":
-        raise ValueError("主维度不合法")
-    title_bonus_dimension = str(body.get("title_bonus_dimension") or "professional")
-    if title_bonus_dimension not in TITLE_BONUS_DIMENSIONS:
-        raise ValueError("称号加成属性不合法")
     event = target_store.create_epic(
-        title=title,
+        title=str(body.get("title", "")),
         description=str(body.get("description", "")).strip(),
-        main_dimension=main_dimension,
-        title_bonus_dimension=title_bonus_dimension,
+        main_dimension=str(body.get("main_dimension") or "professional"),
+        title_bonus_dimension=str(body.get("title_bonus_dimension") or "professional"),
         title_bonus_percent=float(body.get("title_bonus_percent") or 0),
         title_emoji=str(body.get("title_emoji") or "🏅"),
     )
@@ -83,18 +74,12 @@ def _post_create_epic(target_store: EventStore, body: dict[str, Any], params: di
 
 
 def _post_update_epic(target_store: EventStore, body: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
-    main_dimension = str(body.get("main_dimension") or "professional")
-    if main_dimension not in DIMENSION_META or main_dimension == "san":
-        raise ValueError("主维度不合法")
-    title_bonus_dimension = str(body.get("title_bonus_dimension") or "professional")
-    if title_bonus_dimension not in TITLE_BONUS_DIMENSIONS:
-        raise ValueError("称号加成属性不合法")
     event = target_store.update_epic(
         params["epic_id"],
         title=str(body.get("title", "")),
         description=str(body.get("description", "")),
-        main_dimension=main_dimension,
-        title_bonus_dimension=title_bonus_dimension,
+        main_dimension=str(body.get("main_dimension") or "professional"),
+        title_bonus_dimension=str(body.get("title_bonus_dimension") or "professional"),
         title_bonus_percent=float(body.get("title_bonus_percent") or 0),
         title_emoji=str(body.get("title_emoji") or "🏅"),
     )
@@ -102,19 +87,13 @@ def _post_update_epic(target_store: EventStore, body: dict[str, Any], params: di
 
 
 def _post_complete_epic(target_store: EventStore, body: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
-    engraving = str(body.get("engraving", "")).strip()
-    if len(engraving) < 2:
-        raise ValueError("请写下 1-2 句结项铭文")
-    event = target_store.complete_epic(params["epic_id"], engraving)
+    event = target_store.complete_epic(params["epic_id"], str(body.get("engraving", "")))
     return _event_response(target_store, event)
 
 
 def _post_create_task(target_store: EventStore, body: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
-    title = str(body.get("title", "")).strip()
-    if not title:
-        raise ValueError("请填写 Task 标题")
     event = target_store.create_task(
-        title,
+        str(body.get("title", "")),
         _clean_id(body.get("epic_id")),
         effects=body.get("effects") if isinstance(body.get("effects"), list) else None,
         repeatable=bool(body.get("repeatable")),
