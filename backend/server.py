@@ -9,7 +9,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .domain import DIMENSION_META, TASK_EFFECT_DIMENSIONS, TITLE_BONUS_DIMENSIONS, POOL_DIMENSIONS
+from .domain import (
+    DIMENSION_META,
+    MAX_EQUIPPED_TITLES,
+    POOL_DIMENSIONS,
+    TASK_EFFECT_DIMENSIONS,
+    TITLE_BONUS_DIMENSIONS,
+)
 from .store import EventStore
 
 
@@ -18,7 +24,8 @@ FRONTEND_DIR = ROOT / "frontend"
 DATA_DIR = ROOT / "data"
 EVENT_PATH = Path(os.environ.get("MICROSTEP_EVENT_PATH") or (DATA_DIR / "events.jsonl"))
 
-store = EventStore(EVENT_PATH)
+# 延迟到 main() 创建：避免 import backend.server 就在磁盘上创建数据文件。
+store: EventStore | None = None
 
 
 class RPGRequestHandler(BaseHTTPRequestHandler):
@@ -44,6 +51,7 @@ class RPGRequestHandler(BaseHTTPRequestHandler):
                     "pool_dimensions": POOL_DIMENSIONS,
                     "effect_dimensions": TASK_EFFECT_DIMENSIONS,
                     "title_bonus_dimensions": TITLE_BONUS_DIMENSIONS,
+                    "max_equipped_titles": MAX_EQUIPPED_TITLES,
                 }
             )
             return
@@ -288,8 +296,7 @@ class Ticker:
 
 def main(host: str = "127.0.0.1", port: int = 8765, event_path: str | Path | None = None) -> None:
     global store
-    if event_path is not None:
-        store = EventStore(Path(event_path))
+    store = EventStore(Path(event_path) if event_path is not None else EVENT_PATH)
     store.ensure_initialized()
     store.ensure_daily_ticks()
     ticker = Ticker(store)

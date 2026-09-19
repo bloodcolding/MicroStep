@@ -62,7 +62,7 @@ run.py
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/state` | 重放事件流并返回当前状态 |
-| GET | `/api/meta` | 返回维度与称号定义 |
+| GET | `/api/meta` | 返回维度与称号定义、称号装备槽上限（`max_equipped_titles`） |
 | POST | `/api/epics` | 创建里程碑并生成对应称号（`title_bonus_dimension`、`title_bonus_percent`） |
 | POST | `/api/epics/{id}/update` | 更新里程碑和对应称号加成 |
 | POST | `/api/epics/{id}/complete` | 结项祭坛 |

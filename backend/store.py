@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .domain import (
+    MAX_EQUIPPED_TITLES,
     TASK_EFFECT_DIMENSION_SET,
     TITLE_BONUS_DIMENSIONS,
     apply_title_bonuses,
@@ -48,6 +49,8 @@ class EventStore:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._events_cache: list[dict[str, Any]] | None = None
+        self._events_cache_mtime: float | None = None
         if not self.path.exists():
             self.path.write_text("", encoding="utf-8")
 
@@ -57,8 +60,16 @@ class EventStore:
         with self.path.open("r", encoding="utf-8") as handle:
             return [line for line in handle.read().splitlines() if line.strip()]
 
-    def read_events(self) -> list[dict[str, Any]]:
-        with self._lock:
+    def _events_mtime(self) -> float | None:
+        try:
+            return self.path.stat().st_mtime
+        except OSError:
+            return None
+
+    def _load_events_locked(self) -> list[dict[str, Any]]:
+        """按 mtime 缓存解析结果：同一 mtime 内只解析一次 JSONL。"""
+        mtime = self._events_mtime()
+        if self._events_cache is None or mtime != self._events_cache_mtime:
             events: list[dict[str, Any]] = []
             for line in self._read_lines():
                 try:
@@ -66,7 +77,13 @@ class EventStore:
                 except json.JSONDecodeError:
                     # 单行损坏不应阻断整个流；保留可读事件并继续。
                     continue
-            return events
+            self._events_cache = events
+            self._events_cache_mtime = mtime
+        return self._events_cache
+
+    def read_events(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return list(self._load_events_locked())
 
     def append_event(self, event: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
@@ -76,6 +93,8 @@ class EventStore:
             serialized = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
             with self.path.open("a", encoding="utf-8") as handle:
                 handle.write(serialized + "\n")
+            # 追加后让缓存失效，下次读取重新解析（外部直接改文件同理靠 mtime 失效）。
+            self._events_cache = None
             return event
 
     def append_events(self, events: list[dict[str, Any]]) -> None:
@@ -142,9 +161,13 @@ class EventStore:
                 )
                 cursor += timedelta(days=1)
 
-    def get_state(self) -> dict[str, Any]:
+    def _ensure_ready(self) -> None:
+        """所有业务命令的统一前置：初始化事件流并补齐每日 Tick。"""
         self.ensure_initialized()
         self.ensure_daily_ticks()
+
+    def get_state(self) -> dict[str, Any]:
+        self._ensure_ready()
         events = self.read_events()
         return build_state(events)
 
@@ -157,8 +180,7 @@ class EventStore:
         title_bonus_percent: float,
         title_emoji: str = "🏅",
     ) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         event = {
             "type": "EPIC_CREATED",
             "id": str(uuid.uuid4()),
@@ -187,8 +209,7 @@ class EventStore:
         title_bonus_percent: float,
         title_emoji: str,
     ) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         epic = state["epics"].get(epic_id)
         if not epic:
@@ -216,8 +237,7 @@ class EventStore:
         return event
 
     def complete_epic(self, epic_id: str, engraving: str) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         epic = state["epics"].get(epic_id)
         if not epic:
@@ -245,8 +265,7 @@ class EventStore:
         repeatable: bool = False,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         if epic_id:
             epic = state["epics"].get(epic_id)
@@ -272,8 +291,7 @@ class EventStore:
         return event
 
     def complete_task(self, task_id: str, note: str = "") -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
         if not task:
@@ -316,8 +334,7 @@ class EventStore:
         effects: list[dict[str, Any]] | None = None,
         repeatable: bool | None = None,
     ) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
         if not task:
@@ -350,8 +367,7 @@ class EventStore:
         return event
 
     def delete_task(self, task_id: str) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
         if not task:
@@ -373,15 +389,14 @@ class EventStore:
         return event
 
     def equip_title(self, title_id: str) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         title = state["titles"].get(title_id)
         if not title or not title.get("unlocked"):
             raise ValueError("称号尚未解锁")
         if title_id in state["equipped"]:
             raise ValueError("称号已经装备")
-        if len(state["equipped"]) >= 3:
+        if len(state["equipped"]) >= MAX_EQUIPPED_TITLES:
             raise ValueError("最多只能装备 3 个称号")
         event = {
             "type": "TITLE_EQUIPPED",
@@ -395,8 +410,7 @@ class EventStore:
         return event
 
     def unequip_title(self, title_id: str) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         event = {
             "type": "TITLE_UNEQUIPPED",
             "name": f"卸下称号：{title_id}",
@@ -409,8 +423,7 @@ class EventStore:
         return event
 
     def awaken(self) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         state = self.get_state()
         if state["profile"].get("awakened"):
             raise ValueError("已经觉醒")
@@ -419,14 +432,12 @@ class EventStore:
         return event
 
     def manual_tick(self) -> dict[str, Any]:
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         return {"type": "SYSTEM_DAILY_TICK", "date": iso_date(), "at": now_iso()}
 
     def delete_event(self, event_id: str, note: str = "") -> dict[str, Any]:
         """软删除一条事件：追加 tombstone，重放时忽略目标事件。"""
-        self.ensure_initialized()
-        self.ensure_daily_ticks()
+        self._ensure_ready()
         events = self.read_events()
         target = None
         for event in events:

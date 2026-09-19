@@ -1,16 +1,17 @@
-// 称号系统渲染：3 个装备槽位 + 称号库（未解锁/已装备状态）。
+// 称号系统渲染：装备槽位（上限来自 /api/meta）+ 称号库（未解锁/已装备状态）。
 
-import { getState } from "../state.js";
+import { getState, getMeta } from "../state.js";
 import { dimensionName } from "../dimensions.js";
 import { escapeHtml, formatPercent } from "../utils.js";
 
 export function renderTitles() {
   const state = getState();
+  const maxSlots = Number(getMeta()?.max_equipped_titles) || 3;
   const slotHost = document.getElementById("equipmentSlots");
   if (slotHost) {
     slotHost.innerHTML = "";
     const equipped = state.equipped || [];
-    for (let index = 0; index < 3; index += 1) {
+    for (let index = 0; index < maxSlots; index += 1) {
       const titleId = equipped[index];
       const title = titleId ? state.titles?.[titleId] : null;
       const slot = document.createElement("div");
@@ -37,7 +38,7 @@ export function renderTitles() {
   titles.forEach((title) => {
     const unlocked = Boolean(title.unlocked);
     const isEquipped = state.equipped.includes(title.id);
-    const canEquip = unlocked && !isEquipped && state.equipped.length < 3;
+    const canEquip = unlocked && !isEquipped && state.equipped.length < maxSlots;
     const item = document.createElement("div");
     item.className = `title-item ${unlocked ? "" : "locked"}`;
     item.innerHTML = `

@@ -66,6 +66,8 @@ EFFECT_DIMENSION_SET = set(EFFECT_DIMENSIONS)
 TASK_EFFECT_DIMENSIONS = list(EFFECT_DIMENSIONS)
 TASK_EFFECT_DIMENSION_SET = set(TASK_EFFECT_DIMENSIONS)
 TITLE_BONUS_DIMENSIONS = list(POOL_DIMENSIONS)
+# 称号装备槽上限：后端结算与前端展示共用（经 /api/meta 下发）。
+MAX_EQUIPPED_TITLES = 3
 
 
 def iso_date(value: date | datetime | str | None = None) -> str:
@@ -408,7 +410,7 @@ def _apply_title_equipped(state: dict[str, Any], event: dict[str, Any]) -> None:
     title = state["titles"].get(title_id)
     if not title or not title.get("unlocked") or title_id in state["equipped"]:
         return
-    if len(state["equipped"]) < 3:
+    if len(state["equipped"]) < MAX_EQUIPPED_TITLES:
         state["equipped"].append(title_id)
 
 
