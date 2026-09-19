@@ -49,10 +49,11 @@
 | --- | --- |
 | 启动服务（默认 <http://127.0.0.1:8765>） | `python run.py` |
 | 隔离数据启动 | `python run.py --port 8768 --data data\test_events.jsonl` |
-| 全量测试 = 唯一 Check 命令 | `python tests\smoke.py` |
+| 全量测试 = 唯一 Check 命令 | `python -m unittest tests.test_domain tests.test_store; python tests\smoke.py` |
 
+- `tests/test_domain.py` / `tests/test_store.py` 为单元测试（stdlib unittest，零依赖），`test_store` 使用 tempfile 隔离，不触碰真实事件流。
 - `python tests\smoke.py` 使用独立的 `data/smoke_events.jsonl`（运行前后自动清理），**不会污染真实事件流**，可随时放心运行。
-- 本仓库**没有** lint / typecheck / formatter / 构建配置，不要自行引入；"检查通过" = smoke 测试通过。
+- 本仓库**没有** lint / typecheck / formatter / 构建配置，不要自行引入；"检查通过" = 单元测试 + smoke 全部通过。
 - 启动服务器是挂起命令：必须后台运行或提示用户手动执行，禁止阻塞主对话终端。
 - 前端改动刷新浏览器即生效；后端改动需重启服务器（无热重载）。
 
