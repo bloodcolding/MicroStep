@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal, NotRequired, TypedDict
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +95,123 @@ def _parse_day(value: Any) -> date:
 
 
 # ---------------------------------------------------------------------------
+# 事件 schema（TypedDict）
+# ---------------------------------------------------------------------------
+# 事件流的唯一类型定义：store 命令按此构造事件，Reducer 按此解读。
+# event_id / created_at 由 append_event 统一注入，故为 NotRequired。
+# 旧版 ACTION_LOGGED 事件仅作历史保留，不参与结算，不再类型化。
+
+Effect = dict[str, Any]  # {"dimension": str, "delta": float}；加成结算后额外含 base_delta / bonus_percent
+
+
+class _EventCommon(TypedDict):
+    name: str
+    changes: list[Effect]
+    date: str
+    at: str
+    event_id: NotRequired[str]
+    created_at: NotRequired[str]
+
+
+class SystemInitEvent(_EventCommon):
+    type: Literal["SYSTEM_INIT"]
+
+
+class DailyTickEvent(_EventCommon):
+    type: Literal["SYSTEM_DAILY_TICK"]
+
+
+class ProfileAwakenedEvent(_EventCommon):
+    type: Literal["PROFILE_AWAKENED"]
+
+
+class TaskCreatedEvent(_EventCommon):
+    type: Literal["TASK_CREATED"]
+    id: str
+    title: str
+    epic_id: str | None
+    effects: list[Effect]
+    repeatable: bool
+    tags: list[str]
+
+
+class TaskCompletedEvent(_EventCommon):
+    type: Literal["TASK_COMPLETED"]
+    id: str
+    note: str
+    effects: list[Effect]
+    base_effects: list[Effect]
+
+
+class TaskUpdatedEvent(_EventCommon):
+    type: Literal["TASK_UPDATED"]
+    id: str
+    title: str
+    epic_id: str | None
+    effects: list[Effect]
+    repeatable: bool
+
+
+class TaskDeletedEvent(_EventCommon):
+    type: Literal["TASK_DELETED"]
+    id: str
+    deleted: bool
+    deleted_at: str
+
+
+class EpicCreatedEvent(_EventCommon):
+    type: Literal["EPIC_CREATED"]
+    id: str
+    title: str
+    description: str
+    main_dimension: str
+    title_emoji: str
+    title_bonus_dimension: str
+    title_bonus_percent: float
+    unlock_title_id: str | None
+
+
+class EpicUpdatedEvent(_EventCommon):
+    type: Literal["EPIC_UPDATED"]
+    id: str
+    title: str
+    description: str
+    main_dimension: str
+    title_emoji: str
+    title_bonus_dimension: str
+    title_bonus_percent: float
+
+
+class EpicCompletedEvent(_EventCommon):
+    type: Literal["EPIC_COMPLETED"]
+    id: str
+    engraving: str
+
+
+class TitleEquippedEvent(_EventCommon):
+    type: Literal["TITLE_EQUIPPED"]
+    title_id: str
+
+
+class TitleUnequippedEvent(_EventCommon):
+    type: Literal["TITLE_UNEQUIPPED"]
+    title_id: str
+
+
+class EventDeletedEvent(_EventCommon):
+    type: Literal["EVENT_DELETED"]
+    target_event_id: str
+    target_type: str
+    note: str
+    deleted: bool
+    deleted_at: str
+
+
+class StreamClearedEvent(_EventCommon):
+    type: Literal["STREAM_CLEARED"]
+
+
+# ---------------------------------------------------------------------------
 # 初始状态与 Reducer
 # ---------------------------------------------------------------------------
 
@@ -125,6 +242,7 @@ def initial_state() -> dict[str, Any]:
 
 
 def apply_event(state: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
+    """按事件 type 分发到对应 handler；分发表即下方各 _apply_* 的参数类型依据。"""
     event_type = event.get("type")
     if event_type == "SYSTEM_INIT":
         state["profile"]["created_at"] = event.get("date") or iso_date()
@@ -166,7 +284,7 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
-def _apply_daily_tick(state: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
+def _apply_daily_tick(state: dict[str, Any], event: DailyTickEvent) -> dict[str, Any]:
     new_day = event.get("date") or iso_date()
     previous_day = state["meta"].get("current_day")
     if previous_day and previous_day != new_day:
@@ -183,7 +301,7 @@ def _apply_daily_tick(state: dict[str, Any], event: dict[str, Any]) -> dict[str,
 # ---------------------------------------------------------------------------
 
 
-def _apply_task_created(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_task_created(state: dict[str, Any], event: TaskCreatedEvent) -> None:
     task_id = event["id"]
     effects = _effects_from_event(event)
     state["tasks"][task_id] = {
@@ -211,7 +329,7 @@ def _apply_task_created(state: dict[str, Any], event: dict[str, Any]) -> None:
             task_ids.append(task_id)
 
 
-def _apply_task_completed(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_task_completed(state: dict[str, Any], event: TaskCompletedEvent) -> None:
     task_id = event["id"]
     task = state["tasks"].get(task_id)
     if not task or task.get("deleted"):
@@ -250,7 +368,7 @@ def _apply_task_completed(state: dict[str, Any], event: dict[str, Any]) -> None:
     )
 
 
-def _apply_task_updated(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_task_updated(state: dict[str, Any], event: TaskUpdatedEvent) -> None:
     task_id = event["id"]
     task = state["tasks"].get(task_id)
     if not task or task.get("deleted"):
@@ -274,7 +392,7 @@ def _apply_task_updated(state: dict[str, Any], event: dict[str, Any]) -> None:
     _sync_task_epic(state, task_id, old_epic_id, task.get("epic_id"))
 
 
-def _apply_task_deleted(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_task_deleted(state: dict[str, Any], event: TaskDeletedEvent) -> None:
     task_id = event["id"]
     task = state["tasks"].get(task_id)
     if not task or task.get("deleted"):
@@ -310,7 +428,7 @@ def _sync_task_epic(
 # ---------------------------------------------------------------------------
 
 
-def _apply_epic_created(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_epic_created(state: dict[str, Any], event: EpicCreatedEvent) -> None:
     epic_id = event["id"]
     title = event.get("title", "未命名里程碑")
     bonus_dimension = event.get("title_bonus_dimension") or "professional"
@@ -347,7 +465,7 @@ def _apply_epic_created(state: dict[str, Any], event: dict[str, Any]) -> None:
     }
 
 
-def _apply_epic_updated(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_epic_updated(state: dict[str, Any], event: EpicUpdatedEvent) -> None:
     epic_id = event["id"]
     epic = state["epics"].get(epic_id)
     if not epic:
@@ -381,7 +499,7 @@ def _title_description(title: str, dimension: str, bonus_percent: float) -> str:
     return f"完成里程碑「{title}」解锁；{dimension_name}变化 {bonus_percent:g}%"
 
 
-def _apply_epic_completed(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_epic_completed(state: dict[str, Any], event: EpicCompletedEvent) -> None:
     epic_id = event["id"]
     epic = state["epics"].get(epic_id)
     if not epic:
@@ -405,7 +523,7 @@ def _apply_epic_completed(state: dict[str, Any], event: dict[str, Any]) -> None:
     )
 
 
-def _apply_title_equipped(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_title_equipped(state: dict[str, Any], event: TitleEquippedEvent) -> None:
     title_id = event.get("title_id")
     title = state["titles"].get(title_id)
     if not title or not title.get("unlocked") or title_id in state["equipped"]:
@@ -414,7 +532,7 @@ def _apply_title_equipped(state: dict[str, Any], event: dict[str, Any]) -> None:
         state["equipped"].append(title_id)
 
 
-def _apply_title_unequipped(state: dict[str, Any], event: dict[str, Any]) -> None:
+def _apply_title_unequipped(state: dict[str, Any], event: TitleUnequippedEvent) -> None:
     title_id = event.get("title_id")
     if title_id in state["equipped"]:
         state["equipped"].remove(title_id)

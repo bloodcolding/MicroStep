@@ -17,6 +17,20 @@ from .domain import (
     iso_date,
     now_iso,
 )
+from .domain import (
+    DailyTickEvent,
+    EpicCompletedEvent,
+    EpicCreatedEvent,
+    EpicUpdatedEvent,
+    EventDeletedEvent,
+    ProfileAwakenedEvent,
+    TaskCompletedEvent,
+    TaskCreatedEvent,
+    TaskDeletedEvent,
+    TaskUpdatedEvent,
+    TitleEquippedEvent,
+    TitleUnequippedEvent,
+)
 
 
 def _normalize_effects(effects: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -190,7 +204,7 @@ class EventStore:
         title_bonus_dimension: str,
         title_bonus_percent: float,
         title_emoji: str = "🏅",
-    ) -> dict[str, Any]:
+    ) -> EpicCreatedEvent:
         self._ensure_ready()
         self._validate_epic_fields(title, main_dimension, title_bonus_dimension)
         event = {
@@ -220,7 +234,7 @@ class EventStore:
         title_bonus_dimension: str,
         title_bonus_percent: float,
         title_emoji: str,
-    ) -> dict[str, Any]:
+    ) -> EpicUpdatedEvent:
         self._ensure_ready()
         state = self.get_state()
         epic = state["epics"].get(epic_id)
@@ -247,7 +261,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def complete_epic(self, epic_id: str, engraving: str) -> dict[str, Any]:
+    def complete_epic(self, epic_id: str, engraving: str) -> EpicCompletedEvent:
         self._ensure_ready()
         if len(engraving.strip()) < 2:
             raise ValueError("请写下 1-2 句结项铭文")
@@ -277,7 +291,7 @@ class EventStore:
         effects: list[dict[str, Any]] | None = None,
         repeatable: bool = False,
         tags: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskCreatedEvent:
         self._ensure_ready()
         if not title.strip():
             raise ValueError("请填写 Task 标题")
@@ -305,7 +319,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def complete_task(self, task_id: str, note: str = "") -> dict[str, Any]:
+    def complete_task(self, task_id: str, note: str = "") -> TaskCompletedEvent:
         self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
@@ -348,7 +362,7 @@ class EventStore:
         epic_id: str | None = None,
         effects: list[dict[str, Any]] | None = None,
         repeatable: bool | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskUpdatedEvent:
         self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
@@ -381,7 +395,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def delete_task(self, task_id: str) -> dict[str, Any]:
+    def delete_task(self, task_id: str) -> TaskDeletedEvent:
         self._ensure_ready()
         state = self.get_state()
         task = state["tasks"].get(task_id)
@@ -403,7 +417,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def equip_title(self, title_id: str) -> dict[str, Any]:
+    def equip_title(self, title_id: str) -> TitleEquippedEvent:
         self._ensure_ready()
         state = self.get_state()
         title = state["titles"].get(title_id)
@@ -424,7 +438,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def unequip_title(self, title_id: str) -> dict[str, Any]:
+    def unequip_title(self, title_id: str) -> TitleUnequippedEvent:
         self._ensure_ready()
         event = {
             "type": "TITLE_UNEQUIPPED",
@@ -437,7 +451,7 @@ class EventStore:
         self.append_event(event)
         return event
 
-    def awaken(self) -> dict[str, Any]:
+    def awaken(self) -> ProfileAwakenedEvent:
         self._ensure_ready()
         state = self.get_state()
         if state["profile"].get("awakened"):
@@ -450,7 +464,7 @@ class EventStore:
         self._ensure_ready()
         return {"type": "SYSTEM_DAILY_TICK", "date": iso_date(), "at": now_iso()}
 
-    def delete_event(self, event_id: str, note: str = "") -> dict[str, Any]:
+    def delete_event(self, event_id: str, note: str = "") -> EventDeletedEvent:
         """软删除一条事件：追加 tombstone，重放时忽略目标事件。"""
         self._ensure_ready()
         events = self.read_events()
