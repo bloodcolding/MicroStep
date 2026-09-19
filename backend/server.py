@@ -59,8 +59,8 @@ class RPGRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        body = self._read_json_body()
         try:
+            body = self._read_json_body()
             if parsed.path == "/api/epics":
                 title = str(body.get("title", "")).strip()
                 if not title:
