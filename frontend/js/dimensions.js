@@ -41,8 +41,8 @@ export function taskEffects(task) {
 }
 
 export function sanHint(san) {
-  if (san < 15) return "⚠️ 警戒状态：高负荷事件收益降至 25%，建议立即休息。";
-  if (san < 30) return "🪫 疲劳状态：高负荷事件收益减半，恢复类事件有额外奖励。";
+  if (san < 15) return "⚠️ SAN 告急：当前无法结算任何扣减 SAN 的 Task，请优先休息恢复。";
+  if (san < 30) return "🪫 SAN 低水位：继续扣减可能触发结算拒绝，建议先安排恢复。";
   if (san < 55) return "⚖️ 精力中位，注意安排恢复。";
   return "✨ 精力充足，适合处理高负荷任务。";
 }
