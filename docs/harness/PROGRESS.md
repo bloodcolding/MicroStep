@@ -8,13 +8,16 @@
 ## 当前状态
 
 - **日期**: 2026-09-19
-- **健康度**: ✅ `python tests\smoke.py` 通过
-- **阶段**: 仓库初始化完成，等待第一个开发任务
+- **健康度**: ✅ 42 例单元测试 + smoke 全过
+- **阶段**: 重构第一批完成（前端模块化 + 路线 A 还债），等待下一批任务
 - **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）
 
 ## Next Steps
 
-1. （待定）由用户指定第一个开发任务
+1. （可选）路线 B 剩余项：server 路由表驱动、事件 dataclass 类型化
+2. （可选）路线 C：产品机制补完（疲劳惩罚/防刷递减/衰减/结项爆发，逐个走四步法，见 产品方案.md 规划蓝图）
+3. （建议）AGENTS.md 速查表 Check 命令更新为：`python -m unittest tests.test_domain tests.test_store; python tests\smoke.py`（待用户确认）
+4. （小项）favicon 404：可加一个 frontend/favicon.ico 消除控制台报错
 
 ## Suspended Tasks（暂存任务区）
 
@@ -22,7 +25,14 @@ _（无。任务切换时将未完成工作记入此处，向用户确认后切�
 
 ## 归档区（结项总结）
 
-_（任务全部完成时在此写总结：做了什么 + 关键难点。）_
+### 2026-09-19 · 重构第一批：前端模块化 + 路线 A 还债
+
+- 前端 app.js（917 行）拆为 17 个原生 ES modules（js/ + js/render/），无构建步骤，列表交互改事件委托消除渲染层反向依赖；浏览器 QA 全过（加载/建 Task/觉醒/雷达/结算）。
+- 新增 tests/test_domain.py + tests/test_store.py（42 例，stdlib unittest），期间抓到一次误删校验行的编辑事故，安全网价值实证。
+- 修复前端 SAN 提示文案谎言（原描述不存在的疲劳收益惩罚机制）；产品方案.md 重构为「实现现状 + 规划蓝图」；前端设计.md 从空文件补全。
+- EventStore：read_events 按 mtime 缓存（单命令从 ~6 次文件读取降到 1-2 次）；15 处 ensure 样板收敛为 _ensure_ready；MAX_EQUIPPED_TITLES 常量经 /api/meta 下发；消除 import backend.server 即创建数据文件的副作用。
+- 提交：0edd3e6 / f55400c / 350d1b1 / 3dac05e / ee0ba3b。
+- 关键难点：ES modules 拆分的循环依赖（actions↔controller↔render）用容器级事件委托破环；mtime 缓存需保证外部直接改文件时自动失效。
 
 ---
 
