@@ -8,23 +8,36 @@
 ## 当前状态
 
 - **日期**: 2026-09-22
-- **健康度**: ✅ cargo test 52/52 全绿（tauri v2 依赖栈 467 包锁定并编译通过，零警告）；Python Check 全绿（44/44 + smoke）
-- **阶段**: refactor-to-tauri-v2 Step 4 批次二进行中——脚手架五件套 + domain meta + store 真实时钟已就位并通过编译验证（ADR-002 已落账）；剩 app_state/commands/data_dir/ticker/main 接线 + api.js 适配
-- **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）；Tauri 迁移后数据将迁至 AppData（ADR-003 待 tasks 6.3 落账）
+- **健康度**: ✅ cargo test 79/79 全绿；Python Check 全绿（44/44 + smoke）；手工冒烟三链路全绿
+- **阶段**: refactor-to-tauri-v2 手工冒烟（tasks 1.3/6.1）**全部完成**——冷启动/AppData 落盘/觉醒 IPC + 建 Task/记录结算/事件删除 点击链路全绿；期间发现并修复 api.js IPC 参数键 bug（详见归档区）。暂存区（批次二 + 冒烟 bugfix）待用户 commit
+- **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）；Tauri 侧数据落 AppData `%APPDATA%\com.microstep.app`（ADR-003 待 tasks 6.3 落账）
 
 ## Next Steps
 
-1. 批次二续做：`src-tauri/src/app_state.rs`（AppState{store: Mutex<EventStore>} + 14 个信封方法，严格镜像 backend/server.py 的 str()/or/isinstance 强制转换语义，含 Null→"None" 怪癖）
-2. `data_dir.rs`（init_data_dir + 手工 .git 骨架，无子进程）+ `ticker.rs`（600s tokio interval + ensure_daily_ticks，测试可变时钟）+ `commands.rs`（14 个 #[tauri::command] 薄封装）+ `main.rs` 真接线替换占位（single-instance 首个注册 + setup + ticker）
-3. 新增 tests/commands.rs（TC-I01~I21 + TC-E14 八线程并发）、tests/data_dir.rs（TC-I26~I28）、tests/ticker.rs（TC-I29/I30 可变时钟跨日）
-4. api.js invoke 适配（保持 api(path, options) 导出签名，路径→命令映射含 /complete 别名→log_task）；`git diff --stat frontend/` 验证仅 api.js 变化
-5. 全量验证（cargo test + cargo build + Python Check）后提示用户手动 commit；tasks 6.3 收尾时 README 重写 + ADR-003（AppData 迁移）落账
+1. tasks 6.3 收尾：README 重写（cargo 构建/运行/数据迁移手动拷贝步骤）+ ADR-003（AppData 迁移 + git 同步路线）落账 + openspec tasks.md 勾选更新（含 1.3/6.1 冒烟完成）
+2. tasks 6.2 Python 退役（删 backend/ tests/ run.py start.bat）——冒烟门禁已满足 ✅，仅剩用户明确确认
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-22 · 手工冒烟三链路全绿 + api.js camelCase 参数修复（tasks 1.3/6.1 完成）
+
+- 冒烟方法：`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` 启动 Tauri 应用，Playwright 经 CDP 接入 WebView2 实机点击（非 HTTP 模拟）。
+- 三链路全过：① 建 Task（TASK_CREATED 落 AppData，effects/repeatable/epic_id 字段正确，UI 同步）② 记录结算（TASK_COMPLETED 落盘，知识 0→10，bonus 0%）③ 事件删除（EVENT_DELETED tombstone，原事件保留，属性不回滚）；仓库 `data/` 全程零污染（git status 验证）。
+- **发现真 bug 并修复**：点击「＋」记录静默失败（toast 稍纵即逝 + 控制台零输出）。探针实证根因：Tauri v2 命令参数键默认 camelCase（`task_id`→需传 `taskId`），api.js 按 snake_case 传参——必填参数（task_id/epic_id/event_id）invoke 直接 reject；可选多字参数（epic_id/title_id/title_bonus_percent）静默变 None。修复：api.js 在 invoke 前对顶层参数键统一 snake→camel 转换（嵌套值透传），其余 16 个前端模块零改动。
+- 回归：cargo test 79/79、Python 44/44 + smoke 全绿；graphify 已同步。
+- 关键难点：Tauri v2 前端资源编译期内嵌，改前端必须 `cargo build` 重建重启（无热重载）；单字参数键（title/effects/note）不受影响，故建 Task 等链路此前未暴露此 bug。
+
+### 2026-09-22 · Tauri v2 重构批次二结项：壳层接线 + IPC 信封层 + api.js 透明适配
+
+- 壳层五件套：`app_state.rs`（AppState{Mutex<EventStore>} + 14 信封方法，逐字段镜像 server.py 强制转换）、`commands.rs`（14 个 async command）、`data_dir.rs`（AppData + 手工 .git 骨架 HEAD/config/objects/refs，无子进程满足移动端就绪约束）、`ticker.rs`（tokio sleep 循环，先结算后等待 + catch_unwind 不中断）、`lib.rs`/`main.rs` 真接线（single-instance 最先注册 → setup AppData 初始化 + 启动补结算 → ticker）。
+- Python 怪癖全数复刻并测试钉死：显式 null→"None"、`x or 默认` 假值回退、float 失败文案（ValueError 原文 / TypeError 加「服务器内部错误:」前缀）、effects 非列表视为缺省、**KeyError 的 str() 是 repr → error 带单引号**（如 `"'Task 不存在'"`）、update 的 epic_id 缺省=移出里程碑 / repeatable 显式 null=置 false。
+- api.js（26→64 行）invoke 适配：精确表 + 参数段匹配，/complete 别名→log_task，decodeURIComponent，导出签名不变；`git diff --stat frontend/` 证明仅 api.js 单文件变化（其余 16 模块零改动）。
+- 下班 Check：cargo test 79/79（新增 commands 22〔TC-I01~I21 + TC-E14 八线程并发〕+ data_dir 3 + ticker 2）、cargo build 零警告、Python 44/44 + smoke 全绿、graphify 已同步。
+- 关键难点：① Tauri 约束 async command + 借用参数（State<'_>）必须返回 Result（Err 分支永不使用）；② Python `manual_tick()` 实际只做 ensure_ready（返回的 tick 字典被丢弃不落盘），system_tick 信封据此实现；③ tokio 需显式补 `rt` feature 供测试。
 
 ### 2026-09-22 · Tauri v2 重构批次二里程碑：脚手架 + 依赖栈编译验证（下班收口）
 
