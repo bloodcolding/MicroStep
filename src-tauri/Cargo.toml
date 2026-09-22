@@ -21,8 +21,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # 本地时区真实时钟（等价 Python date.today/now_iso；经用户批准统一引入，ADR-002 口径）
 chrono = "0.4"
-# Ticker 周期任务（Python 后台线程的 tokio 等价，design D5）
-tokio = { version = "1", features = ["time", "macros"] }
+# Ticker 周期任务（Python 后台线程的 tokio 等价，design D5）；rt 为测试所需
+tokio = { version = "1", features = ["time", "macros", "rt"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-single-instance = "2"
 

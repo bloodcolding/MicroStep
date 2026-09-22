@@ -137,7 +137,7 @@ fn validate_epic_fields(title: &str, main_dimension: &str, title_bonus_dimension
 }
 
 /// Python `%g` 浮点文案（str(100.0) → "100.0"）。
-fn fmt_f64(value: f64) -> String {
+pub(crate) fn fmt_f64(value: f64) -> String {
     if value.is_finite() && value == value.trunc() && value.abs() < 1e15 {
         format!("{value:.1}")
     } else {
