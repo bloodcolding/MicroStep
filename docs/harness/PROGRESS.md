@@ -14,8 +14,8 @@
 
 ## Next Steps
 
-1. 用户决策：openspec ARCHIVE（归档 `openspec/changes/refactor-to-tauri-v2/` → `openspec/changes/archive/`）+ 手动 push 本轮 11 个提交
-2. （ARCHIVE 后）规划 Change 2：数据目录 Git 远端同步（远端配置 / PAT / push-pull / union merge，见 ADR-003 ④）
+1. 规划 Change 2：数据目录 Git 远端同步（远端配置 / PAT / push-pull / union merge，见 ADR-003 ④）——新基线规格见 `openspec/specs/`
+2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
