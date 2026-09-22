@@ -28,6 +28,16 @@
 
 ---
 
+## ADR-003 · 数据迁移 AppData + Git 同步路线
+
+- **日期**: 2026-09-22
+- **状态**: Accepted
+- **背景**: `refactor-to-tauri-v2` 变更后应用为 Tauri v2 桌面形态，数据不应再落在仓库工作目录（`data/events.jsonl`）；仓库内历史真实数据已按 ADR-001 清空，存量仅为初始化/冒烟数据。spec（data-storage）要求：AppData 落盘、已有文件不覆盖保护、数据目录 git 化预留同步结构。
+- **决策**: ① 事件流唯一持久化位置改为 Tauri `app_data_dir()`（identifier `com.microstep.app`：Windows `%APPDATA%\com.microstep.app`，macOS `~/Library/Application Support/com.microstep.app`，Linux `~/.local/share/com.microstep.app`）。② 旧数据迁移 = 文档指引手动拷贝（design D4：个人应用、单文件、单用户，自动导入是过度设计）；应用对已存在的事件文件不覆盖、不清空。③ 数据目录初始化时写入手工 `.git` 骨架（HEAD/config/objects/refs，无子进程调用，移动端就绪约束），不配远端、不自动提交。④ Git 远端同步（远端配置、PAT、push/pull、union merge）划入 Change 2，本变更不实现。⑤ 仓库内 `data/` 在 Python 退役（tasks 6.2）后不再被应用引用。
+- **影响**: 用户数据不再随本仓库 Git 提交，数据主权转移至 AppData 下的独立 git 仓库；Change 2 前备份责任在用户（直接拷贝目录即可）；仓库瘦身为纯代码仓库；README 迁移步骤为唯一迁移入口。
+
+---
+
 ## 格式约定
 
 ```markdown
