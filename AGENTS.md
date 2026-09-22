@@ -1,6 +1,6 @@
 # AGENTS.md · MicroStep 2.0
 
-本仓库是 **Python 3.12+ 纯标准库实现的事件溯源个人成长 RPG**（本地优先，`pyproject.toml` 要求 ≥3.12，零第三方依赖，无需 `pip install`）。前端为原生 JS 单页应用，无构建步骤。产品愿景见 `产品方案.md`，API 全表见 `README.md`。
+本仓库是 **Tauri v2 桌面应用形态的事件溯源个人成长 RPG**（本地优先；Rust 事件溯源内核 + 原生 JS 单页前端，前端无构建步骤）。Rust 侧依赖由 `src-tauri/Cargo.lock` 锁定白名单（ADR-002）；数据落系统 AppData（ADR-003）。Python 版已由 `refactor-to-tauri-v2` 变更完成行为等价移植并退役（golden replay 零差异验收）。产品愿景见 `产品方案.md`，IPC 命令全表见 `README.md`。
 
 ## 1. Agent 核心工作流 (Standard Operating Procedures)
 
@@ -47,32 +47,37 @@
 
 | 用途 | 命令（Windows PowerShell） |
 | --- | --- |
-| 启动服务（默认 <http://127.0.0.1:8765>） | `python run.py` |
-| 隔离数据启动 | `python run.py --port 8768 --data data\test_events.jsonl` |
-| 全量测试 = 唯一 Check 命令 | `python -m unittest tests.test_domain tests.test_store; python tests\smoke.py` |
+| 启动应用（开发窗口） | `cargo run`（在 `src-tauri\` 下执行） |
+| 发布构建 | `cargo build --release`（产物 `src-tauri\target\release\microstep.exe`） |
+| 打安装包 | `npx -y @tauri-apps/cli build`（产物 `src-tauri\target\release\bundle\`，需 Node） |
+| 全量测试 = 唯一 Check 命令 | `cargo test`（在 `src-tauri\` 下执行；79 例含 golden 回归） |
 
-- `tests/test_domain.py` / `tests/test_store.py` 为单元测试（stdlib unittest，零依赖），`test_store` 使用 tempfile 隔离，不触碰真实事件流。
-- `python tests\smoke.py` 使用独立的 `data/smoke_events.jsonl`（运行前后自动清理），**不会污染真实事件流**，可随时放心运行。
-- 本仓库**没有** lint / typecheck / formatter / 构建配置，不要自行引入；"检查通过" = 单元测试 + smoke 全部通过。
-- 启动服务器是挂起命令：必须后台运行或提示用户手动执行，禁止阻塞主对话终端。
-- 前端改动刷新浏览器即生效；后端改动需重启服务器（无热重载）。
+- `cargo test` 中 store/commands/data_dir 等测试均用 tempdir 隔离，不触碰真实事件流；golden 回归以 Python 版导出的 State 快照为基准资产，行为漂移会被立即捕获。
+- 本仓库**没有** lint / typecheck / formatter / CI 配置，不要自行引入；"检查通过" = `cargo test` 全绿（+ `cargo build` 无新增警告）。
+- `cargo run` / `cargo build` 是挂起或长命令：必须后台运行或提示用户手动执行，禁止阻塞主对话终端。
+- 前端资源在**编译期内嵌**：改前端必须 `cargo build` 后重启应用（无热重载）；改 Rust 同样需重启。
+- WebView2 可开 CDP 调试：设 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"` 后启动，即可用浏览器自动化工具接入实机 UI（冒烟实测方法）。
 
 ### 架构与硬性不变量
 
 ```text
-backend/domain.py   纯函数 Reducer（applyEvent/build_state）+ 维度/称号定义 —— 全部业务规则在此
-backend/store.py    EventStore：JSONL 事件流读写 + 业务命令（RLock 保护，损坏行容错跳过）
-backend/server.py   标准库 ThreadingHTTPServer：/api/* 路由 + 托管 frontend/ 静态文件 + 后台 Ticker 线程自动补每日结算
-frontend/           原生 JS 单页应用（index.html/app.js/styles.css），无构建步骤
-data/events.jsonl   唯一持久化：append-only 事件流（真实用户数据，已纳入 Git）
+src-tauri/src/domain.rs     纯函数 Reducer（apply_event/build_state）+ 维度/称号定义 —— 全部业务规则在此
+src-tauri/src/store.rs      EventStore：JSONL 事件流读写 + 业务命令（Mutex 保护，损坏行容错跳过）
+src-tauri/src/app_state.rs  AppState：14 个信封方法（Python 版强制转换语义逐字段镜像，错误都在信封内）
+src-tauri/src/commands.rs   14 个 #[tauri::command] IPC 薄封装（恰 14 个，无多余）
+src-tauri/src/data_dir.rs   AppData 数据目录初始化 + 手工 .git 骨架（无子进程）
+src-tauri/src/ticker.rs     tokio 周期任务：启动补结算 + 跨零点补每日结算
+frontend/                   原生 JS 单页应用（17 个 ES modules，无构建步骤）；js/api.js 是唯一 IPC 收口
+%APPDATA%\com.microstep.app\events.jsonl  唯一持久化：append-only 事件流（真实用户数据，不纳入本仓库 Git）
 ```
 
-- **零第三方依赖是设计原则**：`pyproject.toml` 的 `dependencies = []`。引入任何新依赖（含传递依赖）必须先征得用户同意并追加 ADR。
-- **事件不可变**：绝不改写或删除 `data/events.jsonl` 中的行；"删除" = 追加 `deleted` 标记事件（tombstone）；Task 只是事件流的投影，删改 Task 不回写历史事件。修改业务规则 = 修改 `domain.py` 的 Reducer，重放同一事件流即完成规则升级。
-- **真实数据保护**：`data/events.jsonl` 是用户真实数据。任何实验必须用 `--data` 指定独立文件，或设置环境变量 `MICROSTEP_EVENT_PATH` 覆盖路径。
-- **维度白名单**：`san, physical, professional, knowledge, expression, kindness, charm`。**不存在** willpower / EXP / 等级体系 —— smoke 测试断言其不存在，禁止重新引入。
+- **依赖白名单**：Rust 侧依赖由 `Cargo.lock` 锁定（tauri/serde/chrono/tokio 等，ADR-002）。引入任何新依赖（含传递依赖）必须先征得用户同意并追加 ADR；前端保持零构建、零 npm 依赖。
+- **事件不可变**：绝不改写或删除事件流中的行；"删除" = 追加 `deleted` 标记事件（tombstone）；Task 只是事件流的投影，删改 Task 不回写历史事件。修改业务规则 = 修改 `domain.rs` 的 Reducer，重放同一事件流即完成规则升级。
+- **真实数据保护**：AppData 下的 `events.jsonl` 是用户真实数据，禁止手工改写做实验；自动化验证一律走 `cargo test`（tempdir 隔离）。仓库内 `data/events.jsonl` 是 Python 时代的历史存档，应用已不读它，仅作 Git 历史保留。
+- **维度白名单**：`san, physical, professional, knowledge, expression, kindness, charm`。**不存在** willpower / EXP / 等级体系 —— 测试断言其不存在，禁止重新引入。
 - **数值规则**：SAN 是日槽（clamp 0–100，每日从 100 重置，扣减超过当前 SAN 时后端拒绝结算）；其余六维为 pool（clamp ≥ 0）。称号加成按 `1 + title_bonus_percent / 100` 结算，最多装备 3 个。
-- API 路由与请求体示例见 `README.md`；产品口径见 `产品方案.md`；前端交互设计见 `前端设计.md`。
+- **IPC 参数键 camelCase**：Tauri v2 命令参数键为 camelCase（`task_id` → `taskId`），`api.js` 已做统一转换；新增 command 或改参数时勿破坏此约定（冒烟曾在此翻车）。
+- IPC 命令全表与请求体示例见 `README.md`；产品口径见 `产品方案.md`；前端交互设计见 `前端设计.md`；变更规格见 `openspec/`。
 
 ### 知识库索引 (Documentation Map)
 
@@ -96,7 +101,7 @@ data/events.jsonl   唯一持久化：append-only 事件流（真实用户数据
 2. **极简主义**：只写解决当前问题的最少代码，不做"未来可能用到"的投机设计。
 3. **外科手术式修改**：只动与任务直接相关的代码；绝不顺手重构、调整原有格式或注释；严格保持现有风格；只清理自己引入的孤儿代码。
 4. **目标驱动执行**：把模糊任务转为可验证目标（"加校验" → "非法输入测试报错 → 修复 → 测试通过"），多步任务先输出带验证点的计划。
-5. **调试代码规范**：Python 统一用 `print("// AGENT-DEBUG:", variable)`；清理时只删含 `// AGENT-DEBUG` 的行，**严禁删除用户原有的调试代码**。
+5. **调试代码规范**：Rust 统一用 `eprintln!("AGENT-DEBUG: {:?}", variable)`；前端统一用 `console.log("AGENT-DEBUG:", variable)`。清理时只删含 `AGENT-DEBUG` 的行，**严禁删除用户原有的调试代码**。
 6. **安全红线**：❌ 删改 `.git/`、`.env`、secrets 类文件；❌ 破坏性系统命令；❌ 未经询问添加依赖；❌ 硬编码密码/token/API key；❌ 擅自格式化整个项目；❌ 运行交互式或挂起命令（`vim`、`tail -f` 等）。
 7. **建议性约束**：不修改 `.gitignore` 既有规则；不新增 build/CI 配置（除非任务要求）；不直接修改 `DECISIONS.md` 中 `Status: Accepted` 的条目（应先提议）。
 8. **下班自查清单**：无新增警告；新公共函数/类有 ≥1 行用途注释；改动文件数 ≤5（超了反思是否夹带重构）；PROGRESS.md 的 Next Steps 已更新；所有 Check 命令已通过。

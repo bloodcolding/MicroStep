@@ -9,4 +9,4 @@
 
 | 编号 | 日期 | 模块 | 摘要 | 状态 |
 | --- | --- | --- | --- | --- |
-| [ERR-001](errors/ERR-001.md) | 2026-09-22 | tests/test_domain.py | test_tick_records_history_and_resets_san 时钟敏感（仅 2026-09-19 当天可通过），KeyError '2026-09-19' | 待用户决策（详见细节文件） |
+| [ERR-001](errors/ERR-001.md) | 2026-09-22 | tests/test_domain.py | test_tick_records_history_and_resets_san 时钟敏感（仅 2026-09-19 当天可通过），KeyError '2026-09-19' | ✅ 已解决（2026-09-22 批次一选项 A：测试钉死固定日期；该 Python 测试已随 tasks 6.2 退役，Rust 侧 tests/domain.rs 承接） |
