@@ -8,14 +8,14 @@
 ## 当前状态
 
 - **日期**: 2026-09-22
-- **健康度**: ✅ cargo test 79/79 全绿；Python Check 全绿（44/44 + smoke）；手工冒烟三链路全绿
-- **阶段**: refactor-to-tauri-v2 手工冒烟（tasks 1.3/6.1）**全部完成**——冷启动/AppData 落盘/觉醒 IPC + 建 Task/记录结算/事件删除 点击链路全绿；期间发现并修复 api.js IPC 参数键 bug（详见归档区）。暂存区（批次二 + 冒烟 bugfix）待用户 commit
-- **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）；Tauri 侧数据落 AppData `%APPDATA%\com.microstep.app`（ADR-003 待 tasks 6.3 落账）
+- **健康度**: ✅ cargo test 79/79；Python Check 全绿（44/44 + smoke，至 6.2 退役前）；手工冒烟三链路全绿；Windows `cargo tauri build` 实测双产物（MSI + NSIS）
+- **阶段**: refactor-to-tauri-v2 **tasks 6.3 收尾完成**（README 重写 / ADR-003 落账 / tasks.md 勾选至仅剩 6.2）；6.1 全量验收亦已完成（构建实测补齐）。变更仅剩 **6.2 Python 退役**，门禁全部满足、只等用户确认
+- **数据档案**: 全新事件流（ADR-001）；Tauri 侧数据落 `%APPDATA%\com.microstep.app`（ADR-003 已落账）；安装包产物 `src-tauri\target\release\bundle\`
 
 ## Next Steps
 
-1. tasks 6.3 收尾：README 重写（cargo 构建/运行/数据迁移手动拷贝步骤）+ ADR-003（AppData 迁移 + git 同步路线）落账 + openspec tasks.md 勾选更新（含 1.3/6.1 冒烟完成）
-2. tasks 6.2 Python 退役（删 backend/ tests/ run.py start.bat）——冒烟门禁已满足 ✅，仅剩用户明确确认
+1. tasks 6.2 Python 退役（删 backend/ tests/ run.py start.bat；建议同步微调 AGENTS.md 的 Check 命令与架构描述）——门禁全满足，待用户明确确认后执行
+2. 6.2 完成后：openspec 归档流程（ARCHIVE gate）+ 用户手动 push
 
 ## Suspended Tasks（暂存任务区）
 
