@@ -7,21 +7,46 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-20
-- **健康度**: ✅ 68 例测试（24 HTTP + 44 单元）+ smoke 全过
-- **阶段**: 重构收官后发布 tag `0.0.1`（含 Windows 一键启动 start.bat）
-- **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）
+- **日期**: 2026-09-22
+- **健康度**: ✅ cargo test 52/52 全绿（tauri v2 依赖栈 467 包锁定并编译通过，零警告）；Python Check 全绿（44/44 + smoke）
+- **阶段**: refactor-to-tauri-v2 Step 4 批次二进行中——脚手架五件套 + domain meta + store 真实时钟已就位并通过编译验证（ADR-002 已落账）；剩 app_state/commands/data_dir/ticker/main 接线 + api.js 适配
+- **数据档案**: 全新事件流（历史数据已清空，见 ADR-001）；Tauri 迁移后数据将迁至 AppData（ADR-003 待 tasks 6.3 落账）
 
 ## Next Steps
 
-1. （可选）路线 C：产品机制补完（疲劳惩罚/防刷递减/衰减/结项爆发，逐个走四步法，见 产品方案.md 规划蓝图）
-2. （可选）方案五 dogfood：先真实使用 1-2 周，用事件流数据给路线 C 排序
+1. 批次二续做：`src-tauri/src/app_state.rs`（AppState{store: Mutex<EventStore>} + 14 个信封方法，严格镜像 backend/server.py 的 str()/or/isinstance 强制转换语义，含 Null→"None" 怪癖）
+2. `data_dir.rs`（init_data_dir + 手工 .git 骨架，无子进程）+ `ticker.rs`（600s tokio interval + ensure_daily_ticks，测试可变时钟）+ `commands.rs`（14 个 #[tauri::command] 薄封装）+ `main.rs` 真接线替换占位（single-instance 首个注册 + setup + ticker）
+3. 新增 tests/commands.rs（TC-I01~I21 + TC-E14 八线程并发）、tests/data_dir.rs（TC-I26~I28）、tests/ticker.rs（TC-I29/I30 可变时钟跨日）
+4. api.js invoke 适配（保持 api(path, options) 导出签名，路径→命令映射含 /complete 别名→log_task）；`git diff --stat frontend/` 验证仅 api.js 变化
+5. 全量验证（cargo test + cargo build + Python Check）后提示用户手动 commit；tasks 6.3 收尾时 README 重写 + ADR-003（AppData 迁移）落账
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-22 · Tauri v2 重构批次二里程碑：脚手架 + 依赖栈编译验证（下班收口）
+
+- 脚手架五件套就位并通过 tauri-build 编译校验：Cargo.toml（tauri 2.11.6 / tauri-build / single-instance / chrono / tokio + [[bin]] + release profile）、build.rs、tauri.conf.json、capabilities/default.json、icons/（tools/gen_icons.py stdlib 生成 32/128 PNG + ICO）。
+- domain.rs 补 dimension_meta / effect_dimensions / title_bonus_dimensions（/api/meta 下发口径）；store.rs 落位 real_clock（chrono 本地时区，等价 Python date.today/now_iso）+ EventStore::open；main.rs 占位使 [[bin]] 可解析（真接线待批次二续做）。
+- 下班 Check：cargo test 52/52 全绿（首次拉取并编译 tauri 依赖栈，467 包锁定，1m23s，走 7897 代理）；Python 44/44 + smoke 全绿；ADR-002（技术栈切换 + 依赖统一引入）已落账。
+
+### 2026-09-22 · Tauri v2 重构 Step 3+4 批次一：golden 基准 + Rust 领域核心行为等价
+
+- ERR-001 修复（选项 A，测试钉死固定日期）；Rust 工具链安装（rustup 1.98.1 + MSVC 14.44 + WebView2，走本地 7897 代理；VS 安装器 `--proxy`/`--wait` 为引导器专属参数，setup.exe 不认）。
+- golden 基准资产 4 份入库（真实流 18 事件 7 类型 + 构造序列 23 事件 14 类型，双跑字节一致）；红阶段 52 例（26+18 移植 + 8 新增护栏，TC 编号可追溯）。
+- GREEN 关键难点 ①：Python `clamp(v, 0, 100)` 位置参数 int 边界——`min(100, 100.0)` 平局返回 int 100，SAN 触顶/触底时历史与维度值变 int（JSON "100" vs "100.0"）；以 `serde_json::Number` 建模 + `py_clamp_number` 复刻，真实流三天顶格 100 暴露、已钉死。②：serde flatten+tag 下 Option 把显式 null 折叠为缺省（unlock_title_id tri-state），用 `deserialize_with` 直通 `Value::deserialize` 绕过。
+- 已知良性差异（corpus 外，代码注释已记）：today() 暂用 UTC 日期（本地时区真实时钟随 Tauri 壳批次）；事件文件新增行的数字字面量（int 10 vs 10.0）与键序按 Rust 侧书写。
+
+## 归档区（结项总结）
+
+### 2026-09-22 · Tauri v2 重构 Step 1+2：设计批准 + OpenSpec 提案
+
+- 四项关键决策（苏格拉底式提问落定）：先桌面三端/移动进路线图 → 后端 Rust 化（sidecar 出局）；Python 彻底退役；AppData 落盘 + Git 同步路线（Change 2）；两阶段两个变更交付。
+- 产出 `openspec/changes/refactor-to-tauri-v2/`：proposal（3 项 BREAKING + 5 能力）、5 个规格增量（15 Requirement / 27 Scenario）、design（D1-D8 决策 + 迁移/回滚计划）、tasks（6 组 22 项占位）。`openspec validate` + `--strict` 双通过。
+- 核心方法论：golden replay 对照移植——事件溯源纯函数 Reducer 让「同一事件流 Python/Rust 重放 State 零差异」成为免费的完美等价性验收。
+- 下班 Check 发现 ERR-001（预先存在的时钟敏感测试，与本会话无关，已登记待决策）。
 
 ### 2026-09-20 · start.bat 一键启动 + 发布 tag 0.0.1
 

@@ -8,3 +8,5 @@ data/tmp*/
 graphify-out/
 .omo/
 .playwright-mcp/
+src-tauri/target/
+src-tauri/gen/schemas/

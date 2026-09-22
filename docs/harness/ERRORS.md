@@ -9,4 +9,4 @@
 
 | 编号 | 日期 | 模块 | 摘要 | 状态 |
 | --- | --- | --- | --- | --- |
-| _（暂无记录）_ | | | | |
+| [ERR-001](errors/ERR-001.md) | 2026-09-22 | tests/test_domain.py | test_tick_records_history_and_resets_san 时钟敏感（仅 2026-09-19 当天可通过），KeyError '2026-09-19' | 待用户决策（详见细节文件） |

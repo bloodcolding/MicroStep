@@ -187,6 +187,8 @@ class TaskReducerTests(unittest.TestCase):
 class DailyTickTests(unittest.TestCase):
     def test_tick_records_history_and_resets_san(self) -> None:
         state = initial_state()
+        # ERR-001：initial_state 的 current_day 锚定真实时钟，显式钉死为固定日期使断言确定性。
+        state["meta"]["current_day"] = "2026-09-19"
         apply_event(state, make_task_created("t1"))
         apply_event(state, make_task_completed("t1", effects=[{"dimension": "san", "delta": -30.0}]))
         self.assertEqual(state["dimensions"]["san"], 70.0)

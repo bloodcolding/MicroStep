@@ -18,6 +18,16 @@
 
 ---
 
+## ADR-002 · 技术栈切换 Tauri v2，Rust 侧统一引入依赖栈
+
+- **日期**: 2026-09-22
+- **状态**: Accepted
+- **背景**: `refactor-to-tauri-v2` 变更（openspec）将应用从 Python stdlib HTTP 服务重构为 Tauri v2 桌面应用（离线优先 + 单实例 + AppData 落盘）。桌面壳、事件序列化、本地时区真实时钟与周期任务无法纯手写替代，沿用「全仓零第三方依赖」不可行。
+- **决策**: 经用户统一批准引入 Rust 侧依赖（版本由 Cargo.lock 锁定）：tauri v2（2.11.6）、tauri-build、tauri-plugin-single-instance、serde / serde_json、chrono（本地时区真实时钟）、tokio（Ticker 周期任务）。工具链：rustup 1.98.1 + MSVC 14.44 + WebView2。Python 侧 `dependencies = []` 在退役（tasks 6.2）前保持不变。
+- **影响**: 「零第三方依赖」原则修订为「Python 侧零依赖（至退役），Rust 侧 Cargo.lock 锁定白名单」；供应链面扩大，依赖升级须重跑全量 Check（cargo test + Python Check）；运行形态从解释器直跑变为 cargo build 产物。
+
+---
+
 ## 格式约定
 
 ```markdown
