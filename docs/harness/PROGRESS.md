@@ -8,20 +8,28 @@
 ## 当前状态
 
 - **日期**: 2026-09-22
-- **健康度**: ✅ cargo test 79/79；Python Check 全绿（44/44 + smoke，至 6.2 退役前）；手工冒烟三链路全绿；Windows `cargo tauri build` 实测双产物（MSI + NSIS）
-- **阶段**: refactor-to-tauri-v2 **tasks 6.3 收尾完成**（README 重写 / ADR-003 落账 / tasks.md 勾选至仅剩 6.2）；6.1 全量验收亦已完成（构建实测补齐）。变更仅剩 **6.2 Python 退役**，门禁全部满足、只等用户确认
-- **数据档案**: 全新事件流（ADR-001）；Tauri 侧数据落 `%APPDATA%\com.microstep.app`（ADR-003 已落账）；安装包产物 `src-tauri\target\release\bundle\`
+- **健康度**: ✅ cargo test 79/79（Python Check 随 6.2 退役退出历史舞台）
+- **阶段**: refactor-to-tauri-v2 **tasks 6.2 Python 退役完成——22/22 全部完成，变更交付收官**（backend/ tests/ run.py start.bat pyproject.toml 已删，AGENTS.md 对齐 Tauri 形态）。待用户 ARCHIVE 决策（openspec 归档）+ 手动 push
+- **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. tasks 6.2 Python 退役（删 backend/ tests/ run.py start.bat；建议同步微调 AGENTS.md 的 Check 命令与架构描述）——门禁全满足，待用户明确确认后执行
-2. 6.2 完成后：openspec 归档流程（ARCHIVE gate）+ 用户手动 push
+1. 用户决策：openspec ARCHIVE（归档 `openspec/changes/refactor-to-tauri-v2/` → `openspec/changes/archive/`）+ 手动 push 本轮 11 个提交
+2. （ARCHIVE 后）规划 Change 2：数据目录 Git 远端同步（远端配置 / PAT / push-pull / union merge，见 ADR-003 ④）
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-22 · refactor-to-tauri-v2 收官：tasks 6.2 Python 退役（22/22 全完成）
+
+- 删除 `backend/`（domain/store/server）、`tests/`（4 个 Python 测试/脚本）、`run.py`、`start.bat`、`pyproject.toml`（纯 Python 工程清单，随退役删除，Git 历史保留）；`data/events.jsonl` 为历史用户数据，保留不动。
+- AGENTS.md 对齐 Tauri 形态：命令速查表（cargo run/build/test + npx tauri build）、架构图（src-tauri 六模块 + AppData 落盘）、真实数据保护改为 AppData 口径、调试规范改 Rust eprintln/前端 console.log、新增 IPC 参数键 camelCase 不变量（冒烟踩坑沉淀）。
+- ERRORS.md ERR-001 状态闭环（批次一已修复，Python 测试随退役消亡，Rust tests/domain.rs 承接）。
+- 退役后回归：cargo test 79/79 全绿；openspec validate --strict 通过。
+- 关键难点：无——门禁（golden 全绿 + Windows 构建实测 + 手工冒烟三链路）在 6.1/6.3 已全部满足，删除动作本身零风险；唯一取舍是 pyproject.toml 超出 tasks 6.2 字面清单（保留它将与新 AGENTS.md 自相矛盾，故随退役一并删除）。
 
 ### 2026-09-22 · 手工冒烟三链路全绿 + api.js camelCase 参数修复（tasks 1.3/6.1 完成）
 

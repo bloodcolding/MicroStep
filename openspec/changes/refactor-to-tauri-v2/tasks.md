@@ -36,5 +36,5 @@
 ## 6. 退役与收尾
 
 - [x] 6.1 全量验收：cargo test 全绿（含 golden 回归）+ 三平台 `cargo tauri build`（至少 Windows 本机实测）+ 手工冒烟（冷启动/建 Task/结算/事件删除/迁移路径）
-- [ ] 6.2 删除 `backend/`、`tests/`、`run.py`、`start.bat`（Git 历史保留）
+- [x] 6.2 删除 `backend/`、`tests/`、`run.py`、`start.bat`（Git 历史保留）
 - [x] 6.3 README 重写（运行/构建/数据迁移）；追加 ADR-002（技术栈切换）、ADR-003（数据迁移 AppData + 同步路线）；更新 PROGRESS.md
