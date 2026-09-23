@@ -40,13 +40,18 @@ async function saveConfig() {
     $("#syncClearPat").checked = false;
     toast("同步配置已保存");
     await refreshPanel();
+    return true;
   } catch (error) {
     toast(error.message, true);
+    return false;
   }
 }
 
 async function runSync() {
   try {
+    // 冒烟发现：填了 PAT 直接点「立即同步」而未先「保存配置」会用旧配置（空 PAT）→ 401。
+    // 同步前先自动落盘表单，保存失败则中止。
+    if (!(await saveConfig())) return;
     const result = await syncNow();
     toast(`同步完成：拉取 ${result.pulled} · 推送 ${result.pushed} · 合并 ${result.merged}`);
     await refreshPanel();
