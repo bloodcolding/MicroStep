@@ -8,23 +8,28 @@
 ## 当前状态
 
 - **日期**: 2026-09-24
-- **健康度**: ✅ cargo test 119/119（既有 79 + 同步新增 40）、零警告、exit=0；openspec validate --strict 通过
-- **阶段**: **Change 2（add-git-remote-sync）Step 3+4 GREEN 完成，待 ARCHIVE**。TDD：红阶段 40 例（4 个测试文件，bare repo 夹具 + before_push 确定性并发注入点）→ `src/sync.rs`（SyncConfig/union_merge/SyncEngine：gix fetch+对象写 / git2 push / 持锁全程 / 稳定收敛防乒乓）+ AppState 3 信封 + 17 command 注册 + 启动 pull spawn + 前端 sync.js 面板。ADR-004 落账（+111 crate）
-- **待用户裁决（2 项规格字面冲突）**: ① rustls 后端引入 aws-lc/ring C 依赖，违 data-sync「除 libgit2 外无 C 依赖」字面（纯 Rust TLS 无成熟替代，按 D1 生产组合接受）；② api.js 需加 3 条路由维持「唯一 IPC 收口」，违「其余 17 模块零改动」字面（其余 16 模块零改动，diff 证明）
-- **待执行**: TC-M02 真实远端手工冒烟（GitHub + Gitee 完整双向 + 错 PAT）后方可 ARCHIVE
+- **健康度**: ✅ cargo test 119/119、零警告、exit=0；openspec validate --all --strict 6/6 通过
+- **阶段**: **Change 2（add-git-remote-sync）已归档**（archive/2026-09-23-add-git-remote-sync；主规格 data-sync 新建 + data-storage/ipc-api 更新）。两阶段交付（refactor-to-tauri-v2 + add-git-remote-sync）全部完成，进入日常使用期
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **用户裁决 2 项规格字面冲突**（C 依赖条款 / api.js 收口例外），必要时修订 spec 增量
-2. **TC-M02 真实远端手工冒烟**（GitHub + Gitee 各一次完整双向同步 + 错 PAT 401 文案）→ 通过后回复 ARCHIVE 执行归档
-3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **结项后跟进（用户手工执行）**: TC-M01 前端面板实机冒烟（cargo run 后配置/保存/同步）；TC-M02 真实远端冒烟（GitHub + Gitee 完整双向 + 错 PAT 401 文案，tasks 7.2 留白原因）。若发现 provider 差异（Gitee/Gitea PAT 用户名形态等），记入 design Q2 后续
+2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-24 · add-git-remote-sync 结项：Git 远端同步（gix fetch + git2 push 双栈）
+
+- TDD 全程：TEST_PLAN（36 TC 编号）→ 红阶段 40 例（4 测试文件；本地 bare repo 充当远端 D9；`SyncHooks.before_push` 钩子把「fetch 后远端被推进」与「同步持锁」两类并发场景做成确定性注入）→ GREEN 一次贯通，119/119 全绿零警告，openspec validate --strict 通过后归档。
+- 交付：`src/sync.rs`（SyncConfig + union_merge 纯函数 + SyncEngine）、AppState 3 信封、IPC 14→17、启动 best-effort pull、前端 `sync.js` 面板（PAT 密码形态/留空保持/勾选清除）；ADR-004 落账（gix 0.87 + git2 0.20，+111 crate）。
+- 关键难点：① 稳定收敛防乒乓——事件集合一致且内容与上次 commit 相同时零动作（否则跨设备行序差异会导致无限互推 merge commit）；② 空远端 fetch 在 gix update_refs 阶段报 NoMapping，须以 advertisement 0 refs 短路走推种子路径；③ git2 0.20.4 `Remote::list` 在 0 refs 空远端触发空指针 UB 检查崩溃，push 前远端复核改用 gix 握手（prepare_fetch 不 receive）；④ MSVC 链接 C 对象使 link.exe stdout 被 rustc 捕获为 linker_messages 警告，以 `.cargo/config.toml` 统一静默（探针对照确认为纯链接器通告）。
+- 已知规格字面偏差（用户「继续」放行，ADR-004 记录在案）：rustls 后端引入 aws-lc/ring C 依赖（纯 Rust TLS 无成熟替代）；api.js 加 3 条路由维持「唯一 IPC 收口」（其余 16 模块零改动）。
+- 遗留：tasks 7.2 真实远端手工冒烟（TC-M02）由用户结项后执行。
 
 ### 2026-09-22 · refactor-to-tauri-v2 收官：tasks 6.2 Python 退役（22/22 全完成）
 
