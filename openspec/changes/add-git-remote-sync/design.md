@@ -2,7 +2,7 @@
 
 ## Context
 
-ADR-003 ④ 将「远端配置 / PAT / push-pull / union merge」划入 Change 2。现状：数据目录已有手工 `.git` 骨架（HEAD/config/objects/refs，无 commits、无远端）；事件流单文件 `events.jsonl`（append-only JSONL，每事件含全局唯一 `event_id`——纳秒时间戳 + 进程内单调计数）；app-shell 规格硬约束移动端就绪（禁子进程/sidecar）；ADR-002 依赖白名单由 Cargo.lock 锁定。Step 1 Brainstorming 五问落定：多设备双向同步 / 通用 git remote / gix 纯 Rust / 启动 pull + 手动同步 / AppData 明文 PAT。
+ADR-003 ④ 将「远端配置 / PAT / push-pull / union merge」划入 Change 2。现状：数据目录已有手工 `.git` 骨架（HEAD/config/objects/refs，无 commits、无远端）；事件流单文件 `events.jsonl`（append-only JSONL，每事件含全局唯一 `event_id`——纳秒时间戳 + 进程内单调计数）；app-shell 规格硬约束移动端就绪（禁子进程/sidecar）；ADR-002 依赖白名单由 Cargo.lock 锁定。Step 1 Brainstorming 五问落定：多设备双向同步 / 通用 git remote / gix 纯 Rust / 启动 pull + 手动同步 / AppData 明文 PAT；push 路线经 Step 2 Q1 核查后演化为 gix(fetch) + git2-rs(push) 双栈（D1，2026-09-23 用户拍板）。
 
 ## Goals / Non-Goals
 
@@ -10,7 +10,7 @@ ADR-003 ④ 将「远端配置 / PAT / push-pull / union merge」划入 Change 2
 
 - 双向同步：任意两台设备离线各自追加后同步，事件流按 union merge 合一，数据不丢不重
 - 通用 git remote（HTTPS + PAT），不绑死 provider
-- 移动端就绪：进程内纯 Rust git 协议，零子进程、零 C
+- 移动端就绪：git 协议全程进程内实现，零子进程；fetch 用纯 Rust（gix），push 用 git2-rs（libgit2 进程内绑定）
 - 离线完全可用：同步是纯增量能力，未配置/失败不影响任何本地功能
 - merge 确定性：同输入同输出，可 golden 式回归
 
@@ -24,13 +24,13 @@ ADR-003 ④ 将「远端配置 / PAT / push-pull / union merge」划入 Change 2
 
 ## Decisions
 
-### D1. gix（gitoxide）作为 git 协议实现（排除子进程 git / git2-rs / REST API）
+### D1. git 协议双栈：gix（fetch / 对象写入）+ git2-rs（push）（排除子进程 git / 自研 send-pack / REST API）
 
-子进程 git 违反 app-shell 移动端就绪且依赖用户环境；git2-rs 引入 libgit2 C 编译，移动端交叉编译多一层复杂度；REST API 绑死单一 provider。gix 纯 Rust、Cargo 自身在用、支持 HTTPS fetch/push + 凭据回调。feature 裁剪至最小集（open repo / fetch / blob 读写 / push / http transport），Cargo.lock 锁定，随变更追加 ADR-004。风险与验证见 Open Questions Q1。
+Q1 核查证实：gix fetch 侧生产可用（Cargo / GitButler 先例），但 push 在 gix 各层均未实现且无先例。push 三选一决策（2026-09-23）：自研 send-pack 无文档无先例，成为永久自维护协议代码；git 子进程违反 app-shell 移动端就绪字面约束，且 stderr 文本解析与结构化错误分类（data-sync 规格）冲突；**git2-rs push 十年生产验证、进程内 C 库不违 app-shell 字面约束**（仅违本稿原「无 C 依赖」自加码条款，该条款随本决策修订），GitButler 正以 gix(fetch) + git2(push) 组合生产运行。故定双栈：gix 承担 open repo / fetch / blob 读写 / 对象写入（纯 Rust）；git2-rs 承担 push（libgit2 进程内绑定，认证走内存回调不落盘）。两者 feature 均裁剪至最小集，Cargo.lock 锁定，随变更追加 ADR-004；双栈读写同一 `.git` 对象库（标准 git 对象格式，无互操作风险）。
 
 ### D2. git 仅作传输与快照历史，merge 在应用层（排除 git merge 机器）
 
-同步正确性 =「事件集合求并」，语义完全由我们掌控、可穷举测试；gix merge 机器 API 面大且引入 git 冲突概念与事件语义双轨。git 在本设计中只承担：fetch（拿远端 blob）、对象写入（blob/tree/commit）、push（更新远端 ref）。
+同步正确性 =「事件集合求并」，语义完全由我们掌控、可穷举测试；gix merge 机器 API 面大且引入 git 冲突概念与事件语义双轨。git 在本设计中只承担：fetch（gix，拿远端 blob）、对象写入（gix，blob/tree/commit）、push（git2-rs，更新远端 ref）。
 
 ### D3. Union merge 语义：本地序保留 + 远端独有追加 + 按 event_id 去重 + 同 id 冲突拒绝
 
@@ -58,12 +58,12 @@ commit 仅在同步时产生，git 历史 = 同步点快照。事件级审计已
 
 ### D9. 测试远端 = 本地 bare repo（file/path 传输，零网络）
 
-集成测试以临时 bare repo 充当远端（gix 原生支持本地路径 remote），覆盖推种子 / 双向同步 / 并发推进重试 / 快照 commit。诚实边界：file 传输无认证面，401/403 只能单测错误映射 + 真实远端手工冒烟。merge 纯函数全分支单测 + 确定性断言（同输入同输出字节）。
+集成测试以临时 bare repo 充当远端（gix 与 git2 均原生支持本地路径 remote），覆盖推种子 / 双向同步 / 并发推进重试 / 快照 commit。诚实边界：file 传输无认证面，401/403 只能单测错误映射 + 真实远端手工冒烟。merge 纯函数全分支单测 + 确定性断言（同输入同输出字节）。
 
 ## Risks / Trade-offs
 
-- **gix push + PAT 成熟度**（Q1 核查中）：若核查或实现证明 push/认证不可用，fallback 到 git2-rs 需重估移动端约束并回到设计门禁；子进程 git 为最后手段（需 MODIFIED app-shell 规格）。
-- **依赖树膨胀**：gix 最小 feature 集仍有数十传递 crate；以 Cargo.lock 锁定 + ADR-004 记录，换取零 C 零子进程。
+- **双 git 栈长期协调成本**：gix（fetch/对象写）与 git2-rs（push）读写同一 `.git`，对象格式标准、无互操作风险，但两库升级节奏与 API 风格差异是持续成本；GitButler 生产先例降低该风险，且双栈边界收敛在 SyncEngine 单模块内。
+- **依赖树膨胀 + libgit2 C 构建链**：gix 最小 feature 集仍有数十传递 crate；git2-rs 引入 libgit2-sys vendored C 编译目标（桌面三平台成熟，移动端交叉编译到移动端立项时再评估）。以 Cargo.lock 锁定 + ADR-004 记录，换取零子进程与 push 开箱可靠性。
 - **PAT 明文**：接受（D5），文档建议细粒度 token + 定期轮换。
 - **同步期间 UI 写入阻塞**：秒级持锁可接受；若未来数据量增长至同步数十秒，需引入同步进度反馈或拆锁。
 - **同 id 冲突拒绝的恢复路径**：属人工修复场景（理论上是 bug 或手改文件才会触发），错误信息给出 event_id 引导排查，不提供自动解决。
@@ -71,10 +71,10 @@ commit 仅在同步时产生，git 历史 = 同步点快照。事件级审计已
 ## Migration Plan
 
 - 无事件 schema 变更，存量数据目录零迁移：首次同步走 bootstrap 空远端推种子路径。
-- 回滚：删除 `sync.json` 即回到现状（同步未启用）；`.git` 内快照 commit 不影响应用读写；gix 依赖移除 = 还原 Cargo.toml/lock。
+- 回滚：删除 `sync.json` 即回到现状（同步未启用）；`.git` 内快照 commit 不影响应用读写；gix + git2 依赖移除 = 还原 Cargo.toml/lock。
 - 发布顺序：先 `cargo test` 全绿（本地 bare repo 集成测试），真实远端冒烟（GitHub + Gitee 至少各一）后合入。
 
 ## Open Questions
 
-- **Q1（已核查，2026-09-23 回填）**：gix 可行性结论——**fetch 侧 FEASIBLE / push 侧 BLOCKED**。fetch + blob 读取 + 对象写入 + ref 更新全部生产可用：Cargo 内置 `fetch_with_gitoxide`（`-Zgitoxide`）、GitButler（同为 Tauri 应用）以 `blocking-http-transport-reqwest-rust-tls` 纯 Rust feature 组合生产运行；PAT 走内存 Basic 认证（`set_identity`/`with_credentials`），`http.extraHeader` 支持 Bearer。**但 push 在 gix 各层（gix / remotes / gix-protocol）均未实现**（官方 crate-status 全层未勾选；维护者 Byron 2026-02 明确 "doesn't even support pushes yet"）；jj 以 git 子进程做 push、GitButler 退回 git2、Cargo 从不 push，无任何第三方纯 Rust push 客户端基于 gix。**push 必须三选一**：(a) 基于 gix-transport packetline + gix-pack thin pack 自研最小 send-pack 客户端（原语齐全、单 ref 无 force/atomic 场景有界，但无文档无先例、成为自维护协议代码）；(b) push 退回 git 子进程（违反 app-shell 移动端就绪字面约束，需 MODIFIED 规格）；(c) push 退回 git2-rs/libgit2（进程内 C 库不违 app-shell 字面——仅违本设计稿"无 C 依赖"自加码条款；代价 = 双 git 栈 + C 构建）。决策待用户，设计门禁重开。
+- **Q1（已核查并关闭，2026-09-23）**：gix 可行性结论——**fetch 侧 FEASIBLE / push 侧 BLOCKED**。fetch + blob 读取 + 对象写入 + ref 更新全部生产可用：Cargo 内置 `fetch_with_gitoxide`（`-Zgitoxide`）、GitButler（同为 Tauri 应用）以 `blocking-http-transport-reqwest-rust-tls` 纯 Rust feature 组合生产运行；PAT 走内存 Basic 认证（`set_identity`/`with_credentials`），`http.extraHeader` 支持 Bearer。**但 push 在 gix 各层（gix / remotes / gix-protocol）均未实现**（官方 crate-status 全层未勾选；维护者 Byron 2026-02 明确 "doesn't even support pushes yet"）；jj 以 git 子进程做 push、GitButler 退回 git2、Cargo 从不 push，无任何第三方纯 Rust push 客户端基于 gix。push 三选一：(a) 自研 send-pack（无文档无先例、自维护协议代码）；(b) git 子进程（违反 app-shell 移动端就绪字面约束 + stderr 解析与结构化错误分类冲突）；(c) git2-rs/libgit2（进程内 C 库，push 开箱即用，GitButler 生产先例）。**决策（2026-09-23 用户拍板）：选 (c) git2-rs**——D1 / Risks / data-sync「移动端就绪」条款已随决策修订，Q1 关闭。
 - **Q2（冒烟阶段）**：Gitee/Gitea PAT 认证兼容性（用户名形态、token 前缀要求）以真实远端实测为准，文档记录 provider 差异。

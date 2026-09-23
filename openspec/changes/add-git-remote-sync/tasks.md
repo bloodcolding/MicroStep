@@ -4,8 +4,8 @@
 
 ## 1. 依赖与 ADR
 
-- [ ] 1.1 gix 最小 feature 集引入（open/fetch/blob 读写/push/http transport），`cargo build` 零警告，Cargo.lock 锁定，记录依赖树实测大小
-- [ ] 1.2 追加 ADR-004（gix 引入 + ADR-002 白名单扩展），回填 design.md Q1 可行性核查结论
+- [ ] 1.1 gix（open/fetch/blob 读写/http transport）+ git2-rs（push，libgit2 vendored）最小 feature 集引入，`cargo build` 零警告，Cargo.lock 锁定，记录依赖树实测大小
+- [ ] 1.2 追加 ADR-004（gix + git2-rs 引入 + ADR-002 白名单扩展），回填 design.md Q1 可行性核查结论与决策
 
 ## 2. 同步配置（SyncConfig）
 
@@ -19,9 +19,9 @@
 
 ## 4. Git 传输（SyncEngine）
 
-- [ ] 4.1 fetch：远端分支 tip + events.jsonl blob 读取（无 checkout）
+- [ ] 4.1 fetch（gix）：远端分支 tip + events.jsonl blob 读取（无 checkout）
 - [ ] 4.2 对象写入：blob/tree/commit（双 parent 合流），快照式（仅同步时 commit）
-- [ ] 4.3 push：non-fast-forward 有界重试（≤2）+ 超时（30s）+ 错误分类映射
+- [ ] 4.3 push（git2-rs）：non-fast-forward 有界重试（≤2）+ 超时（30s）+ 错误分类映射
 - [ ] 4.4 集成测试：本地 bare repo 充当远端——推种子 / 双向同步 / 并发推进重试 / bootstrap 三场景
 
 ## 5. 触发链与并发

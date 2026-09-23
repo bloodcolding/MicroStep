@@ -9,12 +9,12 @@
 
 - **日期**: 2026-09-23
 - **健康度**: ✅ cargo test 79/79（refactor-to-tauri-v2 收官时全绿）
-- **阶段**: **Change 2（add-git-remote-sync）Step 2 门禁暂停——push 路线待决策（2026-09-24 再议）**：五件套已落位且 `openspec validate --strict` 通过；gix 可行性核查（librarian，2026-09-23）证实 **gix 无 push**（fetch 侧生产可用，GitButler/Cargo 先例），结论已回填 design.md Q1。push 三选一（自研 send-pack / git 子进程 / git2-rs 双栈）**用户明确不决定、明天再议**（会话内曾点选 (c) git2-rs，仅作倾向参考）。决策后修订规格（data-sync「移动端就绪」条款 + design D1）再过 Step 2 门禁
+- **阶段**: **Change 2（add-git-remote-sync）Step 2 已过门禁（2026-09-23 用户回复「继续」视为 APPROVED），待新会话启动 Step 3（TDD，会话隔离）**：push 路线已拍板 **(c) git2-rs 双栈**（fetch=gix 纯 Rust / push=git2-rs libgit2 进程内绑定，GitButler 生产先例；(a) 自研 send-pack 无先例、(b) git 子进程违 app-shell 且错误解析与规格冲突，落选）。design D1/Risks/Q1 + proposal + tasks + data-sync「移动端就绪」条款已随决策修订（4 文件 20+20 行），`openspec validate --strict` 通过。期间曾探讨 per-device 多文件架构，用户决定放弃、维持单文件 union merge 不动
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **Change 2 断点续接（2026-09-24）**：决策 push 路线三选一（依据 design.md Q1 回填的核查结论：gix 无 push，fetch 可用）→ 修订 data-sync 规格「移动端就绪」条款与 design D1/Risks → `openspec validate --strict` → 用户评审 APPROVED → 新会话进 Step 3（TDD）。ADR-004（依赖白名单扩展）随实现落账
+1. **Change 2 进入 Step 3（新会话）**：按 DEVELOPMENT_FLOW.md「启动 Step 3+4 的新会话」模板，只加载 `openspec/changes/add-git-remote-sync/` 规格 → 输出 TEST_PLAN（门禁：TEST_PLAN_APPROVED）→ 失败测试代码（门禁：CONTINUE）。ADR-004（gix + git2-rs 白名单扩展）随实现落账
 2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）

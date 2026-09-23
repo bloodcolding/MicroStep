@@ -117,12 +117,12 @@
 
 ### Requirement: 移动端就绪（同步实现约束）
 
-同步实现 SHALL NOT 使用子进程、sidecar 或任何桌面专属运行时能力（遵循 app-shell 移动端就绪约束）；git 协议 SHALL 由纯 Rust 库（gix）在进程内实现，无 C 依赖。
+同步实现 SHALL NOT 使用子进程、sidecar 或任何桌面专属运行时能力（遵循 app-shell 移动端就绪约束）；git 协议 SHALL 全程在进程内实现：fetch 与对象读写由纯 Rust 库（gix）承担，push 由 git2-rs（libgit2 进程内绑定）承担；除 libgit2 外 SHALL NOT 引入其他 C 依赖。
 
 #### Scenario: 依赖审计
 
 - **WHEN** 审计同步相关 Rust 依赖树与源码
-- **THEN** 无子进程调用、无 C/C++ 编译目标
+- **THEN** 无子进程调用、无 sidecar；唯一 C/C++ 编译目标为 libgit2（git2-rs vendored 构建）
 
 ### Requirement: 同步设置界面
 
