@@ -10,6 +10,7 @@
 //! - KeyError 的 `str(exc)` 是参数 repr → `error` 带 **单引号**；
 //! - `bool(x)`（Python 真值）：字符串 `"false"` 为真。
 
+use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
 use serde_json::{json, Value};
@@ -19,6 +20,7 @@ use crate::domain::{
     EffectInput, MAX_EQUIPPED_TITLES,
 };
 use crate::store::{fmt_f64, CreateTask, EventStore, StoreError, UpdateTask};
+use crate::sync;
 
 /// Python 分发层的两类可预期异常：ValueError → 400 信封原文；
 /// TypeError 等 → 500 信封加「服务器内部错误: 」前缀。
@@ -30,12 +32,19 @@ enum CoerceError {
 /// 共享状态：单一 EventStore 由 Mutex 串行化（等价 Python RLock）。
 pub struct AppState {
     store: Mutex<EventStore>,
+    /// 数据目录（sync.json / .git 所在地，由事件流路径推导）。
+    data_dir: PathBuf,
 }
 
 impl AppState {
     /// 以已就绪的 EventStore 构造（AppData 路径解析见 main 接线 / data_dir）。
     pub fn new(store: EventStore) -> Self {
-        Self { store: Mutex::new(store) }
+        let data_dir = store
+            .path()
+            .parent()
+            .map(std::path::Path::to_path_buf)
+            .unwrap_or_default();
+        Self { store: Mutex::new(store), data_dir }
     }
 
     /// Python RLock 异常后仍可用；等价地忽略锁毒化继续持有。
@@ -53,6 +62,65 @@ impl AppState {
     /// Ticker 单轮检查入口（Python `Ticker._run` 调用的就是它）。
     pub fn ensure_daily_ticks(&self) {
         self.lock().ensure_daily_ticks();
+    }
+
+    // ------------------------------------------------------------------
+    // 同步 command（data-sync spec：3 个信封方法，错误都在信封内）
+    // ------------------------------------------------------------------
+
+    /// 由数据目录 + 事件流路径构造同步引擎。
+    fn sync_engine(&self) -> sync::SyncEngine {
+        let events_path = self.lock().path().to_path_buf();
+        sync::SyncEngine::new(self.data_dir.clone(), events_path)
+    }
+
+    /// `sync_get_config`：读同步配置（PAT 脱敏回显，仅末 4 位可辨识）。
+    pub fn sync_get_config(&self) -> Value {
+        let cfg = sync::load_sync_config(&self.data_dir);
+        json!({
+            "ok": true,
+            "remote_url": cfg.remote_url,
+            "pat": sync::mask_pat(&cfg.pat),
+            "branch": cfg.branch,
+            "last_sync_at": cfg.last_sync_at,
+            "last_result": cfg.last_result,
+        })
+    }
+
+    /// `sync_set_config`：部分更新语义（未携带字段不变；pat 空串清除）。
+    pub fn sync_set_config(
+        &self,
+        remote_url: Option<String>,
+        pat: Option<String>,
+        branch: Option<String>,
+    ) -> Value {
+        let mut cfg = sync::load_sync_config(&self.data_dir);
+        sync::apply_sync_config_update(
+            &mut cfg,
+            &sync::SyncConfigUpdate { remote_url, pat, branch },
+        );
+        match sync::save_sync_config(&self.data_dir, &cfg) {
+            Ok(()) => json!({ "ok": true }),
+            Err(err) => json!({ "ok": false, "error": err.to_string() }),
+        }
+    }
+
+    /// `sync_now`：完整 pull-merge-push，成功信封含 pulled/pushed/merged 统计。
+    pub fn sync_now(&self) -> Value {
+        match self.sync_engine().sync_now(&self.store) {
+            Ok(outcome) => json!({
+                "ok": true,
+                "pulled": outcome.pulled,
+                "pushed": outcome.pushed,
+                "merged": outcome.merged,
+            }),
+            Err(err) => json!({ "ok": false, "error": err.message() }),
+        }
+    }
+
+    /// 启动 best-effort pull（lib.rs setup spawn 调用；失败仅记 last_result）。
+    pub fn startup_pull(&self) {
+        let _ = self.sync_engine().startup_pull(&self.store);
     }
 
     // ------------------------------------------------------------------

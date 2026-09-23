@@ -33,7 +33,18 @@ npx -y @tauri-apps/cli build
 | macOS | `~/Library/Application Support/com.microstep.app/` |
 | Linux | `~/.local/share/com.microstep.app/` |
 
-目录内 `events.jsonl` 是唯一持久化文件（append-only 事件流）；目录同时被初始化为 git 仓库骨架（不配远端、不自动提交），为后续数据同步变更预留结构。
+目录内 `events.jsonl` 是唯一持久化文件（append-only 事件流）；目录同时被初始化为 git 仓库骨架（不配远端、不自动提交），同步时写入快照 commit（见下节）。
+
+### 远端同步（Git HTTPS + PAT）
+
+数据目录可配置通用 git 远端（GitHub / Gitee / Gitea 等 HTTPS remote + PAT）实现多设备双向同步：
+
+- **配置**：应用内「☁️ 远端同步」面板填写远端地址 / PAT（密码形态存储于数据目录 `sync.json`，建议使用细粒度单仓库读写 token 并定期轮换）/ 分支（默认 `main`）。远端信息只存 `sync.json`，不写入 `.git/config`——数据仓库由应用管理。
+- **语义**：union merge（本地序保留 + 远端独有事件按序追加 + 按 `event_id` 语义相等去重）；同一 `event_id` 双端内容不同 = 违反事件不可变红线，整次拒绝并点名该 id，双端文件保持原样。
+- **触发**：启动时异步 best-effort pull（失败仅记入最近结果，不阻塞不弹窗）；面板「立即同步」执行完整 pull-merge-push，返回拉取/推送/合并统计。同步全程持事件流锁（秒级），期间业务写入排队等待。
+- **实现**：gix（fetch / 对象读写，纯 Rust）+ git2-rs（push，libgit2 进程内）双栈，零子进程；commit 仅在同步时写入（快照式历史），push 遇远端并发推进自动重跑（上限 2 次）。未配置或离线时全部本地功能不受影响。
+
+**灾难恢复**：手工 `git clone` 远端仓库后，将其中 `events.jsonl` 拷贝至本机数据目录即可。
 
 **从 Python 版迁移旧数据**（手动拷贝，单文件单用户）：
 
@@ -101,6 +112,9 @@ docs/harness/       # 进度、决策（ADR）、错误索引
 | `unequip_title` | `POST /api/titles/unequip` | 卸下称号 |
 | `awaken` | `POST /api/awaken` | 提前觉醒六维雷达 |
 | `system_tick` | `POST /api/system/tick` | 手动触发每日结算检查 |
+| `sync_get_config` | —（新增） | 读同步配置（PAT 脱敏，仅末 4 位可辨识） |
+| `sync_set_config` | —（新增） | 部分更新同步配置（未携带字段不变；`pat: ""` 清除） |
+| `sync_now` | —（新增） | 完整 pull-merge-push，成功返回 `{pulled, pushed, merged}` |
 
 创建 Task 的参数示例：
 

@@ -7,15 +7,18 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-23
-- **健康度**: ✅ cargo test 79/79（refactor-to-tauri-v2 收官时全绿）
-- **阶段**: **Change 2（add-git-remote-sync）Step 2 已过门禁（2026-09-23 用户回复「继续」视为 APPROVED），待新会话启动 Step 3（TDD，会话隔离）**：push 路线已拍板 **(c) git2-rs 双栈**（fetch=gix 纯 Rust / push=git2-rs libgit2 进程内绑定，GitButler 生产先例；(a) 自研 send-pack 无先例、(b) git 子进程违 app-shell 且错误解析与规格冲突，落选）。design D1/Risks/Q1 + proposal + tasks + data-sync「移动端就绪」条款已随决策修订（4 文件 20+20 行），`openspec validate --strict` 通过。期间曾探讨 per-device 多文件架构，用户决定放弃、维持单文件 union merge 不动
+- **日期**: 2026-09-24
+- **健康度**: ✅ cargo test 119/119（既有 79 + 同步新增 40）、零警告、exit=0；openspec validate --strict 通过
+- **阶段**: **Change 2（add-git-remote-sync）Step 3+4 GREEN 完成，待 ARCHIVE**。TDD：红阶段 40 例（4 个测试文件，bare repo 夹具 + before_push 确定性并发注入点）→ `src/sync.rs`（SyncConfig/union_merge/SyncEngine：gix fetch+对象写 / git2 push / 持锁全程 / 稳定收敛防乒乓）+ AppState 3 信封 + 17 command 注册 + 启动 pull spawn + 前端 sync.js 面板。ADR-004 落账（+111 crate）
+- **待用户裁决（2 项规格字面冲突）**: ① rustls 后端引入 aws-lc/ring C 依赖，违 data-sync「除 libgit2 外无 C 依赖」字面（纯 Rust TLS 无成熟替代，按 D1 生产组合接受）；② api.js 需加 3 条路由维持「唯一 IPC 收口」，违「其余 17 模块零改动」字面（其余 16 模块零改动，diff 证明）
+- **待执行**: TC-M02 真实远端手工冒烟（GitHub + Gitee 完整双向 + 错 PAT）后方可 ARCHIVE
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **Change 2 进入 Step 3（新会话）**：按 DEVELOPMENT_FLOW.md「启动 Step 3+4 的新会话」模板，只加载 `openspec/changes/add-git-remote-sync/` 规格 → 输出 TEST_PLAN（门禁：TEST_PLAN_APPROVED）→ 失败测试代码（门禁：CONTINUE）。ADR-004（gix + git2-rs 白名单扩展）随实现落账
-2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **用户裁决 2 项规格字面冲突**（C 依赖条款 / api.js 收口例外），必要时修订 spec 增量
+2. **TC-M02 真实远端手工冒烟**（GitHub + Gitee 各一次完整双向同步 + 错 PAT 401 文案）→ 通过后回复 ARCHIVE 执行归档
+3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 

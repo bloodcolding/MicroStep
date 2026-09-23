@@ -38,6 +38,16 @@
 
 ---
 
+## ADR-004 · Git 远端同步双栈：gix（fetch/对象读写）+ git2-rs（push）
+
+- **日期**: 2026-09-24
+- **状态**: Accepted
+- **背景**: `add-git-remote-sync` 变更（ADR-003 ④ 既定路线）要求事件流跨设备双向同步。Step 1/2 核查确认：gix fetch 侧生产可用（Cargo / GitButler 先例）但 push 全层未实现；push 三选一（自研 send-pack / git 子进程 / git2-rs libgit2）经用户拍板选 (c) git2-rs（进程内 C 库，GitButler 生产先例组合 gix+git2）；git 子进程违反 app-shell 移动端就绪字面约束且 stderr 解析与结构化错误分类冲突。
+- **决策**: ① 引入 `gix 0.87`（fetch / blob 读写 / blob/tree/commit 对象写入，纯 Rust；feature 裁剪至 `blocking-http-transport-reqwest-rust-tls` + `sha1`）与 `git2 0.20`（push，libgit2 vendored 进程内绑定；`vendored-libgit2` + `https`），版本由 Cargo.lock 锁定，构成 ADR-002 白名单扩展。② merge 在应用层（union merge 纯函数），git 仅作传输与快照历史（design D2/D3/D4）。③ 集成测试远端 = 本地 bare repo（D9）；401/403 走单测映射 + 真实远端手工冒烟。④ MSVC 链接 C 对象导致 link.exe stdout「正在创建库」被 rustc 捕获为 linker_messages 警告，以 `.cargo/config.toml` 统一 `-A linker_messages`（探针对照确认纯 Rust 项目零此警告）。
+- **影响**: 依赖树 +111 crate（Cargo.lock），其中 rustls 传输后端引入 aws-lc-rs（aws-lc-sys C）与 ring——**与 data-sync 规格「除 libgit2 外 SHALL NOT 引入其他 C 依赖」字面冲突**：rustls 两大 TLS provider（aws-lc-rs / ring）均含 C/asm，纯 Rust TLS 无成熟替代；按 D1 已拍板的 GitButler 生产组合接受，待用户裁决是否修订该条款（备选：native-tls/WinSSL 仅改善 Windows）。供应链面显著扩大，依赖升级须重跑全量 Check。git2 0.20.4 的 `Remote::list` 在 0 refs 空远端有空指针 UB 检查崩溃，push 前远端复核改用 gix 握手（prepare_fetch 不 receive）绕开。
+
+---
+
 ## 格式约定
 
 ```markdown

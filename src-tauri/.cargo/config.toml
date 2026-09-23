@@ -1,0 +1,6 @@
+# MSVC 链接 libgit2 / aws-lc 等含导出符号的 C 对象时，link.exe 会向 stdout 输出
+# 「正在创建库 ...」，rustc 将其捕获为 linker_messages 警告。此为链接器通告而非
+# 代码问题（最小探针项目对照确认纯 Rust 零警告），统一静默以保持「零新增警告」
+# 纪律（ADR-004 依赖引入的已知副作用）。
+[target.'cfg(all())']
+rustflags = ["-A", "linker_messages"]

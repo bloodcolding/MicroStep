@@ -12,6 +12,9 @@ const exactRoutes = {
   "/api/titles/unequip": "unequip_title",
   "/api/awaken": "awaken",
   "/api/system/tick": "system_tick",
+  "/api/sync/config": "sync_get_config",
+  "/api/sync/config/save": "sync_set_config",
+  "/api/sync/now": "sync_now",
 };
 
 // 参数路由表：null 表示捕获段，paramName 为其 invoke 参数名。
@@ -68,4 +71,17 @@ export async function fetchMeta() {
 
 export async function fetchState() {
   return api("/api/state");
+}
+
+// 远端同步（add-git-remote-sync）：经本模块统一收口（camelCase + 错误信封）。
+export async function fetchSyncConfig() {
+  return api("/api/sync/config");
+}
+
+export async function saveSyncConfig(body) {
+  return api("/api/sync/config/save", { body: JSON.stringify(body) });
+}
+
+export async function syncNow() {
+  return api("/api/sync/now");
 }

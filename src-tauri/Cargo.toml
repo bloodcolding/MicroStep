@@ -25,6 +25,12 @@ chrono = "0.4"
 tokio = { version = "1", features = ["time", "macros", "rt"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-single-instance = "2"
+# Git 远端同步（add-git-remote-sync，D1：push 走 git2-rs libgit2 进程内绑定；
+# 集成测试亦以其构造本地 bare repo 夹具）。ADR-004 随实现落账。
+git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2", "https"] }
+# gix 最小 feature 集：HTTPS 传输（reqwest+rusttls）+ sha1 对象哈希（git 默认，
+# 无它 gix-hash 零臂 match 无法编译）；ADR-004 随实现落账。
+gix = { version = "0.87.1", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "sha1"] }
 
 [profile.release]
 strip = true

@@ -12,7 +12,7 @@
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -154,6 +154,11 @@ pub struct EventStore {
 }
 
 impl EventStore {
+    /// 事件流文件路径（同步引擎据此定位数据目录）。
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     /// 以注入时钟打开（或创建）事件流文件（测试入口，时钟钉死）。
     pub fn with_clock(path: PathBuf, clock: Clock) -> Self {
         if let Some(parent) = path.parent() {

@@ -1,4 +1,4 @@
-﻿//! 14 个 `#[tauri::command]` 薄封装（ipc-api spec 命令白名单，恰 14 个无多余）：
+//! 17 个 `#[tauri::command]` 薄封装（ipc-api spec 命令白名单，恰 17 个无多余）：
 //! 参数逐字段对应 HTTP 请求体并以 `Option<Value>` 区分「字段缺省」与「显式 null」，
 //! 重组为 body 后交给 AppState 信封方法（全部强制转换语义收敛在那里）。
 //! 异步命令跑在 tokio 线程池（Python ThreadingHTTPServer 的等价并发形态）；
@@ -169,4 +169,29 @@ pub async fn awaken(state: SharedState<'_>) -> Result<Value, String> {
 #[tauri::command]
 pub async fn system_tick(state: SharedState<'_>) -> Result<Value, String> {
     Ok(state.system_tick())
+}
+
+// 同步 command（data-sync spec）：参数键经 Tauri v2 映射为 camelCase（remoteUrl）。
+
+/// `sync_get_config`：读同步配置（PAT 脱敏回显）。
+#[tauri::command]
+pub async fn sync_get_config(state: SharedState<'_>) -> Result<Value, String> {
+    Ok(state.sync_get_config())
+}
+
+/// `sync_set_config`：部分更新语义写配置（前端参数键 camelCase：remoteUrl/pat/branch）。
+#[tauri::command]
+pub async fn sync_set_config(
+    state: SharedState<'_>,
+    remote_url: Option<String>,
+    pat: Option<String>,
+    branch: Option<String>,
+) -> Result<Value, String> {
+    Ok(state.sync_set_config(remote_url, pat, branch))
+}
+
+/// `sync_now`：触发完整同步（fetch → union merge → 快照 commit → push）。
+#[tauri::command]
+pub async fn sync_now(state: SharedState<'_>) -> Result<Value, String> {
+    Ok(state.sync_now())
 }
