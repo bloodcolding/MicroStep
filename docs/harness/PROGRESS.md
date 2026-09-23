@@ -8,14 +8,15 @@
 ## 当前状态
 
 - **日期**: 2026-09-24
-- **健康度**: ✅ cargo test 119/119、零警告、exit=0；openspec validate --all --strict 6/6 通过
+- **健康度**: ✅ cargo test 119/119、零警告、exit=0（下班 Check 复跑确认）；openspec validate --all --strict 6/6 通过
 - **阶段**: **Change 2（add-git-remote-sync）已归档**（archive/2026-09-23-add-git-remote-sync；主规格 data-sync 新建 + data-storage/ipc-api 更新）。两阶段交付（refactor-to-tauri-v2 + add-git-remote-sync）全部完成，进入日常使用期
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **结项后跟进（用户手工执行）**: TC-M01 前端面板实机冒烟（cargo run 后配置/保存/同步）；TC-M02 真实远端冒烟（GitHub + Gitee 完整双向 + 错 PAT 401 文案，tasks 7.2 留白原因）。若发现 provider 差异（Gitee/Gitea PAT 用户名形态等），记入 design Q2 后续
-2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **同步冒烟收尾（下次上班确认）**: 用户在应用内完成一次最终同步确认（GitHub 真实数据首推）；错 PAT 401 文案已实证（用户首次未保存 PAT 同步即命中）；PAT 已泄露于会话记录，提醒用户轮换（GitHub → Fine-grained tokens 撤销重建 → 面板更新）
+2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
@@ -30,6 +31,13 @@ _（无。任务切换时将未完成工作记入此处，向用户确认后切�
 - 关键难点：① 稳定收敛防乒乓——事件集合一致且内容与上次 commit 相同时零动作（否则跨设备行序差异会导致无限互推 merge commit）；② 空远端 fetch 在 gix update_refs 阶段报 NoMapping，须以 advertisement 0 refs 短路走推种子路径；③ git2 0.20.4 `Remote::list` 在 0 refs 空远端触发空指针 UB 检查崩溃，push 前远端复核改用 gix 握手（prepare_fetch 不 receive）；④ MSVC 链接 C 对象使 link.exe stdout 被 rustc 捕获为 linker_messages 警告，以 `.cargo/config.toml` 统一静默（探针对照确认为纯链接器通告）。
 - 已知规格字面偏差（用户「继续」放行，ADR-004 记录在案）：rustls 后端引入 aws-lc/ring C 依赖（纯 Rust TLS 无成熟替代）；api.js 加 3 条路由维持「唯一 IPC 收口」（其余 16 模块零改动）。
 - 遗留：tasks 7.2 真实远端手工冒烟（TC-M02）由用户结项后执行。
+
+### 2026-09-24 · 真实远端冒烟（结项后跟进）：401 根因 = UX 陷阱，通路实证通过
+
+- 用户应用内首同步报「认证失败（401）」：读 sync.json 定位 `pat: ""` —— 表单值不自动落盘，未点「保存配置」即同步。错误分类逻辑本身正确（401 → 认证失败 ✓）。
+- 修复（`964ad57`）：「立即同步」前自动保存表单，保存失败中止；重建重启应用。
+- 真实 GitHub 通路实证（隔离临时分支 + 自动清理 + 临时测试脚本跑完即删）：推种子 pushed=1 → 双向拉取 pulled=1 → 分支清理成功。PAT 有效、gix fetch + git2 push 在 HTTPS 真实远端全通。
+- 关键难点：运行中的 `cargo run` 会锁 `target\debug\microstep.exe`，cargo test 重建 bin 前必须先停应用（os error 5 拒绝访问）。
 
 ### 2026-09-22 · refactor-to-tauri-v2 收官：tasks 6.2 Python 退役（22/22 全完成）
 
