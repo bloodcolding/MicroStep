@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MicroStep · 个人成长 RPG</title>
+    <title data-i18n="app.title">MicroStep · 个人成长 RPG</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -14,14 +14,15 @@
           <span class="brand-mark">⚡</span>
           <div>
             <h1>MicroStep</h1>
-            <p>反内卷个人成长引擎</p>
+            <p data-i18n="brand.tagline">反内卷个人成长引擎</p>
           </div>
         </div>
         <div class="topbar-actions">
           <span id="todayLabel" class="today-label"></span>
-          <button id="awakenTopBtn" class="ghost-button" type="button">立即觉醒</button>
-          <button id="refreshBtn" class="ghost-button" type="button">刷新状态</button>
-          <button id="settingsBtn" class="ghost-button" type="button">⚙ 设置</button>
+          <button id="awakenTopBtn" class="ghost-button" type="button" data-i18n="topbar.awaken">立即觉醒</button>
+          <button id="refreshBtn" class="ghost-button" type="button" data-i18n="topbar.refresh">刷新状态</button>
+          <button id="localeToggle" class="ghost-button" type="button" data-i18n-aria-label="topbar.locale.aria">EN</button>
+          <button id="settingsBtn" class="ghost-button" type="button" data-i18n="topbar.settings">⚙ 设置</button>
         </div>
       </header>
 
@@ -29,26 +30,26 @@
         <section id="simpleView" class="view simple-view">
           <div class="hero-card card">
             <div class="hero-copy">
-              <p class="eyebrow">DAY 1 · 初见期</p>
-              <h2>只定义 Task，<br />不制造打卡焦虑。</h2>
-              <p class="muted">自己设置属性与数值，系统按你的定义结算。</p>
+              <p class="eyebrow" data-i18n="simple.eyebrow">DAY 1 · 初见期</p>
+              <h2><span data-i18n="simple.heading1">只定义 Task，</span><br /><span data-i18n="simple.heading2">不制造打卡焦虑。</span></h2>
+              <p class="muted" data-i18n="simple.sub">自己设置属性与数值，系统按你的定义结算。</p>
             </div>
             <div class="hero-gauges">
               <div class="gauge-block">
-                <div class="gauge-label"><span>🧠 SAN</span><strong id="simpleSanValue">100</strong></div>
+                <div class="gauge-label"><span data-i18n="simple.sanLabel">🧠 SAN</span><strong id="simpleSanValue">100</strong></div>
                 <div class="bar"><span id="simpleSanBar" class="bar-fill san"></span></div>
                 <p id="simpleSanHint" class="gauge-hint"></p>
               </div>
               <div class="hero-actions">
-                <button id="simpleNewTaskBtn" class="primary-button" type="button">新建 Task</button>
+                <button id="simpleNewTaskBtn" class="primary-button" type="button" data-i18n="simple.newTask">新建 Task</button>
               </div>
             </div>
           </div>
 
           <section class="card">
             <div class="section-head">
-              <h3>最近事件流</h3>
-              <span class="muted">事件溯源 · 不可变日志</span>
+              <h3 data-i18n="simple.recentEvents">最近事件流</h3>
+              <span class="muted" data-i18n="simple.eventsSub">事件溯源 · 不可变日志</span>
             </div>
             <div id="simpleEvents" class="event-list"></div>
           </section>
@@ -59,23 +60,23 @@
             <div class="left-column">
               <div class="card">
                 <div class="section-head">
-                  <h3>🏁 里程碑</h3>
-                  <button id="newEpicBtn" class="text-button" type="button">新建里程碑</button>
+                  <h3 data-i18n="dash.epics">🏁 里程碑</h3>
+                  <button id="newEpicBtn" class="text-button" type="button" data-i18n="dash.newEpic">新建里程碑</button>
                 </div>
                 <div class="task-toolbar two-column">
-                  <input id="epicSearchInput" class="search-input" type="search" placeholder="搜索里程碑名称、描述、属性或状态" />
+                  <input id="epicSearchInput" class="search-input" type="search" data-i18n-placeholder="dash.epicSearchPh" placeholder="搜索里程碑名称、描述、属性或状态" />
                   <span id="epicCount" class="muted"></span>
                 </div>
                 <div id="epicList" class="stack-list epic-list"></div>
                 <div class="sub-section-head">
-                  <h4>Task 列表</h4>
-                  <button id="newTaskBtn" class="text-button" type="button">新建 Task</button>
+                  <h4 data-i18n="dash.taskList">Task 列表</h4>
+                  <button id="newTaskBtn" class="text-button" type="button" data-i18n="dash.newTask">新建 Task</button>
                 </div>
                 <div class="task-toolbar">
-                  <input id="taskSearchInput" class="search-input" type="search" placeholder="搜索 Task 名称、属性、数值或里程碑" />
+                  <input id="taskSearchInput" class="search-input" type="search" data-i18n-placeholder="dash.taskSearchPh" placeholder="搜索 Task 名称、属性、数值或里程碑" />
                   <label class="filter-toggle">
                     <input id="showCompletedTasks" type="checkbox" />
-                    显示已完成
+                    <span data-i18n="dash.showCompleted">显示已完成</span>
                   </label>
                   <span id="taskCount" class="muted"></span>
                 </div>
@@ -84,7 +85,7 @@
 
               <div class="card">
                 <div class="section-head">
-                  <h3>📜 最近事件流</h3>
+                  <h3 data-i18n="dash.recentEvents">📜 最近事件流</h3>
                   <div class="head-actions">
                     <span class="muted">append-only log</span>
                   </div>
@@ -96,7 +97,7 @@
             <div class="right-column">
               <div class="card stat-hero">
                 <div class="gauge-block">
-                <div class="gauge-label"><span>🧠 SAN / 理智</span><strong id="sanValue">100</strong></div>
+                <div class="gauge-label"><span data-i18n="dash.sanLabel">🧠 SAN / 理智</span><strong id="sanValue">100</strong></div>
                   <div class="bar"><span id="sanBar" class="bar-fill san"></span></div>
                   <p id="sanHint" class="gauge-hint"></p>
                 </div>
@@ -104,23 +105,23 @@
 
               <div class="card">
                 <div class="section-head">
-                  <h3>属性雷达</h3>
-                  <span class="muted">渐进式觉醒</span>
+                  <h3 data-i18n="dash.radar">属性雷达</h3>
+                  <span class="muted" data-i18n="dash.radarSub">渐进式觉醒</span>
                 </div>
                 <canvas id="radarCanvas" width="520" height="460"></canvas>
               </div>
 
               <div class="card">
                 <div class="section-head">
-                  <h3>属性值</h3>
+                  <h3 data-i18n="dash.dimensions">属性值</h3>
                 </div>
                 <div id="dimensionCards" class="dimension-grid"></div>
               </div>
 
               <div class="card">
                 <div class="section-head">
-                  <h3>🏅 里程碑称号</h3>
-                  <span class="muted">3 个激活插槽</span>
+                  <h3 data-i18n="dash.titles">🏅 里程碑称号</h3>
+                  <span class="muted" data-i18n="dash.titlesSub">3 个激活插槽</span>
                 </div>
                 <div id="equipmentSlots" class="equipment-slots"></div>
                 <div id="titleLibrary" class="title-library"></div>

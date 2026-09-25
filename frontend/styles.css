@@ -91,6 +91,11 @@ button {
   gap: 10px;
 }
 
+/* 语言切换按钮：固定最小宽度，避免「EN」/「中文」互切时顶栏抖动。 */
+#localeToggle {
+  min-width: 3.25rem;
+}
+
 .today-label {
   margin-right: 6px;
   color: var(--muted);

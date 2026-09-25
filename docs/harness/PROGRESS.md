@@ -9,12 +9,12 @@
 
 - **日期**: 2026-09-25
 - **健康度**: ✅ cargo test 119/119、exit=0；cargo build 零警告；openspec validate --all --strict 7/7 通过；实机隔离冒烟全过
-- **阶段**: **Change 4（add-frontend-i18n）Step 3 红基线完成**——TEST_PLAN 已批准（TC-U01~U12 / TC-I01~I14 / TC-E01~E04）；规格 5 文件自 ecf1 工作区同步入库并通过 validate --strict；静态审计红基线 10/10 FAIL（i18n 模块/字典/复数/回退告警/切换控件/data-i18n 标记/中文残留 134 行/dimensionName 字典层/硬编码 zh-CN 格式化 7 处/microstep.locale 均未实现）；cargo test 基线 119/119、exit=0。待 `CONTINUE` 进入实现
+- **阶段**: **Change 4（add-frontend-i18n）Step 4 实现与验证完成，待 `ARCHIVE`**——静态审计 12/12 PASS（字典 177/182 键基名一致、非字典 JS 零中文字面量、硬编码 locale 清零、翻译边界护栏）；CDP 实机冒烟 36/36 PASS（隔离 identifier，多轮启动 --lang 控制系统语言）；cargo test 119/119、cargo build 零警告、openspec validate --strict 通过
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **add-frontend-i18n Step 4（待 CONTINUE）**: 最简实现 → 静态审计 U01~U12 全 PASS → cargo test 119/119 + cargo build 零警告 → CDP 实机冒烟（隔离档案）→ 验证报告（门禁 `ARCHIVE`）
+1. **add-frontend-i18n 收尾（待 ARCHIVE）**: 用户审阅验证报告 → `openspec archive add-frontend-i18n` → 归档区写结项总结
 2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 

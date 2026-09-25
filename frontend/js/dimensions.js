@@ -1,10 +1,16 @@
 // 维度取值、预览与 Task 效果读取：连接 state/meta 与各渲染模块。
 
+import { t, dictValue, currentNumberLocale } from "./i18n/index.js";
 import { getState, getMeta } from "./state.js";
 import { clamp, formatDelta } from "./utils.js";
 
 export function dimensionName(key) {
-  return getMeta()?.dimensions?.[key]?.name || key;
+  return dictValue(`dimension.${key}.name`) || getMeta()?.dimensions?.[key]?.name || key;
+}
+
+// 属性卡副标题：字典优先，meta 下发 full_name 兜底。
+export function dimensionFullName(key) {
+  return dictValue(`dimension.${key}.fullName`) || getMeta()?.dimensions?.[key]?.full_name || "";
 }
 
 export function attributeCurrentValue(dimension) {
@@ -16,7 +22,7 @@ export function attributeCurrentValue(dimension) {
 export function attributeValueLabel(dimension) {
   const value = attributeCurrentValue(dimension);
   if (dimension === "san") return `${value} / 100`;
-  return value.toLocaleString("zh-CN", { maximumFractionDigits: 1 });
+  return value.toLocaleString(currentNumberLocale(), { maximumFractionDigits: 1 });
 }
 
 export function projectedAttributeLabel(dimension, delta) {
@@ -25,7 +31,7 @@ export function projectedAttributeLabel(dimension, delta) {
     ? clamp(value + delta, 0, 100)
     : Math.max(0, value + delta);
   const unit = dimension === "san" ? " / 100" : "";
-  return `→ ${projected.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}${unit}`;
+  return `→ ${projected.toLocaleString(currentNumberLocale(), { maximumFractionDigits: 1 })}${unit}`;
 }
 
 export function taskEffects(task) {
@@ -41,10 +47,10 @@ export function taskEffects(task) {
 }
 
 export function sanHint(san) {
-  if (san < 15) return "⚠️ SAN 告急：当前无法结算任何扣减 SAN 的 Task，请优先休息恢复。";
-  if (san < 30) return "🪫 SAN 低水位：继续扣减可能触发结算拒绝，建议先安排恢复。";
-  if (san < 55) return "⚖️ 精力中位，注意安排恢复。";
-  return "✨ 精力充足，适合处理高负荷任务。";
+  if (san < 15) return t("san.hint.critical");
+  if (san < 30) return t("san.hint.low");
+  if (san < 55) return t("san.hint.mid");
+  return t("san.hint.full");
 }
 
 export function dailySanText() {
@@ -52,6 +58,9 @@ export function dailySanText() {
   const daily = state.daily_san || {};
   const history = Object.entries(daily.history || {}).sort(([a], [b]) => a.localeCompare(b));
   const last = history.length ? history[history.length - 1] : null;
-  const base = `今日起始 100 · 当前 ${Math.round(Number(daily.current ?? state.derived.san) * 10) / 10} · 今日变化 ${formatDelta(daily.change ?? 0)}`;
-  return last ? `${base} · ${last[0]} 最终 SAN ${last[1]}` : base;
+  const current = Math.round(Number(daily.current ?? state.derived.san) * 10) / 10;
+  const change = formatDelta(daily.change ?? 0);
+  return last
+    ? t("san.daily.summaryWithHistory", { current, change, date: last[0], final: last[1] })
+    : t("san.daily.summary", { current, change });
 }

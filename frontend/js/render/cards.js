@@ -1,12 +1,12 @@
 // 六维属性卡渲染：对数尺度条形图。
 
-import { getState, getMeta, poolDimensionOrder } from "../state.js";
-import { dimensionName } from "../dimensions.js";
+import { currentNumberLocale } from "../i18n/index.js";
+import { getState, poolDimensionOrder } from "../state.js";
+import { dimensionName, dimensionFullName } from "../dimensions.js";
 import { clamp } from "../utils.js";
 
 export function renderDimensionCards() {
   const state = getState();
-  const meta = getMeta();
   const host = document.getElementById("dimensionCards");
   if (!host) return;
   host.innerHTML = "";
@@ -17,10 +17,10 @@ export function renderDimensionCards() {
     card.innerHTML = `
       <div class="top">
         <span class="name">${dimensionName(key)}</span>
-        <span class="value">${value.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}</span>
+        <span class="value">${value.toLocaleString(currentNumberLocale(), { maximumFractionDigits: 1 })}</span>
       </div>
       <div class="bar"><span class="bar-fill" style="width:${attributeBarWidth(value)}%;background:linear-gradient(90deg,#7dd3fc,#6ee7b7)"></span></div>
-      <p class="gauge-hint">${meta.dimensions[key].full_name}</p>
+      <p class="gauge-hint">${dimensionFullName(key)}</p>
     `;
     host.appendChild(card);
   });
