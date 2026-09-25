@@ -9,13 +9,14 @@
 
 - **日期**: 2026-09-25
 - **健康度**: ✅ cargo test 119/119、零警告、exit=0（下班 Check 复跑确认）；openspec validate --all --strict 6/6 通过
-- **阶段**: **Change 2（add-git-remote-sync）已归档**（archive/2026-09-23-add-git-remote-sync；主规格 data-sync 新建 + data-storage/ipc-api 更新）。两阶段交付（refactor-to-tauri-v2 + add-git-remote-sync）全部完成，进入日常使用期
+- **阶段**: **Change 3（add-settings-panel）Step 2 已过门禁**（用户 2026-09-25 批准；settings-ui 新规格 + data-sync/app-shell 增量，validate --strict 通过）；待新会话进 Step 3（TDD）
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **add-settings-panel Step 3（新会话）**: 按四步法会话隔离，新会话只加载 `openspec/changes/add-settings-panel/` 规格 → 输出 TEST_PLAN（因前端无测试基建，以冒烟清单 + cargo 全量回归替代红阶段）→ TEST_PLAN_APPROVED → 失败/待验证基线 → CONTINUE → 最简实现 + 验证报告 → ARCHIVE
+2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
