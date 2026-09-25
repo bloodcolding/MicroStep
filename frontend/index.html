@@ -21,6 +21,7 @@
           <span id="todayLabel" class="today-label"></span>
           <button id="awakenTopBtn" class="ghost-button" type="button">立即觉醒</button>
           <button id="refreshBtn" class="ghost-button" type="button">刷新状态</button>
+          <button id="settingsBtn" class="ghost-button" type="button">⚙ 设置</button>
         </div>
       </header>
 
@@ -125,29 +126,6 @@
                 <div id="titleLibrary" class="title-library"></div>
               </div>
 
-              <div class="card">
-                <div class="section-head">
-                  <h3>☁️ 远端同步</h3>
-                  <button id="syncNowBtn" class="text-button" type="button">立即同步</button>
-                </div>
-                <div class="task-toolbar">
-                  <input id="syncRemoteUrl" class="search-input" type="text" placeholder="远端地址（HTTPS git URL）" />
-                </div>
-                <div class="task-toolbar">
-                  <input id="syncPat" class="search-input" type="password" placeholder="PAT（Personal Access Token，可留空）" />
-                </div>
-                <div class="task-toolbar">
-                  <input id="syncBranch" class="search-input" type="text" placeholder="分支（默认 main）" />
-                  <label class="filter-toggle">
-                    <input id="syncClearPat" type="checkbox" />
-                    清除已保存 PAT
-                  </label>
-                </div>
-                <div class="section-head">
-                  <button id="syncSaveBtn" class="text-button" type="button">保存配置</button>
-                  <span id="syncStatus" class="muted"></span>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -166,6 +144,6 @@
     </div>
 
     <script type="module" src="/js/main.js"></script>
-    <script type="module" src="/js/sync.js"></script>
+    <script type="module" src="/js/settings.js"></script>
   </body>
 </html>

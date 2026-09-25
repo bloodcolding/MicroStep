@@ -8,21 +8,27 @@
 ## 当前状态
 
 - **日期**: 2026-09-25
-- **健康度**: ✅ cargo test 119/119、零警告、exit=0（下班 Check 复跑确认）；openspec validate --all --strict 6/6 通过
-- **阶段**: **Change 3（add-settings-panel）Step 2 已过门禁**（用户 2026-09-25 批准；settings-ui 新规格 + data-sync/app-shell 增量，validate --strict 通过）；待新会话进 Step 3（TDD）
+- **健康度**: ✅ cargo test 119/119、exit=0；cargo build 零警告；openspec validate --all --strict 7/7 通过；实机隔离冒烟全过
+- **阶段**: **Change 3（add-settings-panel）已归档**（settings-ui 新能力落账，app-shell/data-sync 主规格同步修订）
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **add-settings-panel Step 3（新会话）**: 按四步法会话隔离，新会话只加载 `openspec/changes/add-settings-panel/` 规格 → 输出 TEST_PLAN（因前端无测试基建，以冒烟清单 + cargo 全量回归替代红阶段）→ TEST_PLAN_APPROVED → 失败/待验证基线 → CONTINUE → 最简实现 + 验证报告 → ARCHIVE
-2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-25 · add-settings-panel 结项：统一设置面板 + 同步入口迁移
+
+- 四步法收官：TEST_PLAN（24 个 TC-SP + 文档 / 回归 / OpenSpec 项）→ 静态红基线（settings.js 缺失、旧同步卡仍在、sync.js 自绑定）→ 最简实现 → 实机隔离冒烟 + 119/119 全绿后归档；`openspec archive` 已落账 settings-ui 7 Requirement，并修订 app-shell / data-sync。
+- 交付：顶栏「⚙ 设置」两视图可达；宽体模态内恰好三类 tab（代码仓同步 / 数据档案 / 关于）；sync.js 改为导出表单 + 绑定 + 回显，由 settings.js 挂载；仪表盘旧同步卡整卡移除；面板全 div 结构规避 modalBody 统一 submit 代理。
+- 验证：隔离 identifier + 本地 bare 远端实机冒烟覆盖两视图入口、三类 tab 零请求、PAT 保存 / 留空保持 / 勾选清除、同步前自动保存、保存失败中止、同步成功与错误 toast、旧卡无残留；Rust / IPC / schema / 依赖零改动。
+- 关键难点：① 规格文案写 `state.events`，实机冒烟暴露真实字段为 `state.event_stream`，已修复事件总数；② 设置面板请求返回前可能被关闭，回显需先确认 DOM 仍存在，避免 null 赋值变成错误 toast；③ Tauri core.invoke 只读，CDP 观测需在页面导航前替换 core 对象拦截。
 
 ### 2026-09-25 · 同步冒烟收尾确认：GitHub 双向同步用户实证通过
 
