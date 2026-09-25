@@ -7,22 +7,27 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-24
+- **日期**: 2026-09-25
 - **健康度**: ✅ cargo test 119/119、零警告、exit=0（下班 Check 复跑确认）；openspec validate --all --strict 6/6 通过
 - **阶段**: **Change 2（add-git-remote-sync）已归档**（archive/2026-09-23-add-git-remote-sync；主规格 data-sync 新建 + data-storage/ipc-api 更新）。两阶段交付（refactor-to-tauri-v2 + add-git-remote-sync）全部完成，进入日常使用期
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **同步冒烟收尾（下次上班确认）**: 用户在应用内完成一次最终同步确认（GitHub 真实数据首推）；错 PAT 401 文案已实证（用户首次未保存 PAT 同步即命中）；PAT 已泄露于会话记录，提醒用户轮换（GitHub → Fine-grained tokens 撤销重建 → 面板更新）
-2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-25 · 同步冒烟收尾确认：GitHub 双向同步用户实证通过
+
+- 用户在应用内完成最终同步确认（Next Steps 1 闭环）：真实 GitHub 远端双向同步 OK，add-git-remote-sync 遗留的手工冒烟（TC-M02/tasks 7.2）至此全部完成。
+- 401 文案已在真实场景实证（首次未保存 PAT 即同步命中），修复（`964ad57`）后通路正常。
+- 安全项闭环：旧 PAT 已由用户在 GitHub 手动撤销重建（2026-09-25 确认），泄露风险解除。
 
 ### 2026-09-24 · add-git-remote-sync 结项：Git 远端同步（gix fetch + git2 push 双栈）
 
