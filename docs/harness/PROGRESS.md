@@ -8,14 +8,16 @@
 ## 当前状态
 
 - **日期**: 2026-09-25
-- **健康度**: ✅ cargo test 119/119、exit=0；cargo build 零警告；openspec validate --all --strict 8/8 通过（含 frontend-i18n）；实机隔离冒烟 36/36 全过
-- **阶段**: **Change 4（add-frontend-i18n）已归档**（frontend-i18n 新能力落账，8 个主规格）
+- **健康度**: ✅ cargo test 119/119、exit=0；openspec validate add-cicd-multiplatform --strict 通过（本会话仅新增规格文档，代码零改动）
+- **阶段**: **Change 5（add-cicd-multiplatform）Step 1+2 已过门禁**——GitHub Actions 全平台发布：桌面三平台 + Android 签名 APK + iOS 26.6 未签名 ipa（7 天自签口径）；两阶段交付（桌面先行）
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **新会话执行 Step 3（TDD，会话隔离）**: 只加载 `openspec/changes/add-cicd-multiplatform/` 规格 → 输出 TEST_PLAN（workflow 语法校验 + tag 冒烟清单 + Rust 守卫移动目标编译红绿）→ 等 `TEST_PLAN_APPROVED` → 红基线 → 等 `CONTINUE` → Step 4 实现（Phase 1 桌面管线先行验收，Phase 2 移动端）
+2. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
+3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
