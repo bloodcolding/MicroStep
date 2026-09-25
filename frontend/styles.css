@@ -91,6 +91,11 @@ button {
   gap: 10px;
 }
 
+/* 语言切换按钮：固定最小宽度，避免「EN」/「中文」互切时顶栏抖动。 */
+#localeToggle {
+  min-width: 3.25rem;
+}
+
 .today-label {
   margin-right: 6px;
   color: var(--muted);
@@ -928,6 +933,85 @@ canvas {
   margin: 0 36px 18px 0;
 }
 
+.modal-card.settings-modal {
+  width: min(760px, 100%);
+}
+
+.settings-panel {
+  min-width: 0;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-tab {
+  padding: 8px 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.settings-tab:hover {
+  color: var(--text);
+  border-color: rgba(110, 231, 183, 0.45);
+}
+
+.settings-tab[aria-selected="true"] {
+  color: #08110d;
+  background: linear-gradient(135deg, #6ee7b7, #34d399);
+  border-color: transparent;
+}
+
+.settings-tab-panel[hidden] {
+  display: none;
+}
+
+.settings-sync,
+.settings-about,
+.settings-facts {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-fact {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.settings-fact span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-fact strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.settings-about p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 .modal-close {
   position: absolute;
   top: 16px;
@@ -1083,6 +1167,10 @@ canvas {
 
   .effect-preview {
     text-align: left;
+  }
+
+  .settings-facts {
+    grid-template-columns: 1fr;
   }
 
   .event-item {

@@ -1,5 +1,6 @@
 // 事件流渲染：简单视图与仪表盘共用，按创建时间倒序截取。
 
+import { t, hasTranslation } from "../i18n/index.js";
 import { getState } from "../state.js";
 import { dimensionName } from "../dimensions.js";
 import { formatDelta, formatDateTime, escapeHtml } from "../utils.js";
@@ -14,7 +15,7 @@ export function renderEvents(containerId, limit = 10) {
     .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
     .slice(0, limit);
   if (!events.length) {
-    host.innerHTML = '<p class="muted">还没有事件。创建第一个 Task，故事就开始生长。</p>';
+    host.innerHTML = `<p class="muted">${t("events.empty")}</p>`;
     return;
   }
   events.forEach((event) => {
@@ -35,7 +36,7 @@ export function renderEventItem(event) {
             `<span class="effect-chip">${dimensionName(change.dimension)} ${formatDelta(change.delta)}</span>`
         )
         .join("")
-    : '<span class="muted">无属性变化</span>';
+    : `<span class="muted">${t("events.noChanges")}</span>`;
   const detailTags = event.details?.tags?.length
     ? `<p class="event-detail">${escapeHtml(event.details.tags.join(" / "))}</p>`
     : "";
@@ -44,10 +45,16 @@ export function renderEventItem(event) {
     : "";
   const deleteButton =
     eventId && !deleted
-      ? `<button class="icon-button" type="button" data-delete-event="${escapeHtml(eventId)}" title="标记删除">🗑</button>`
+      ? `<button class="icon-button" type="button" data-delete-event="${escapeHtml(eventId)}" title="${t("events.markDeleted")}">🗑</button>`
       : "";
   const icon = deleted ? "🗑️" : eventIcon(event.type);
-  const typeLabel = deleted ? "deleted" : event.type;
+  // 类型 chip 是前端生成描述（走字典）；条目标题 event.name 为后端生成（含用户数据），按翻译边界原文直显。
+  const typeKey = `event.type.${event.type}`;
+  const typeLabel = deleted
+    ? t("events.typeDeleted")
+    : hasTranslation(typeKey)
+      ? t(typeKey)
+      : event.type;
   item.innerHTML = `
     <div class="event-icon ${deleted ? "deleted-icon" : ""}">${icon}</div>
     <div class="event-main">
@@ -58,7 +65,7 @@ export function renderEventItem(event) {
       <div class="event-changes">${changesHtml}</div>
       ${detailTags}
       ${engraving}
-      <p class="event-time">创建于 ${formatDateTime(event.created_at)}${deleted ? ` · 删除于 ${formatDateTime(event.deleted_at)}` : ""}</p>
+      <p class="event-time">${t("events.createdAt", { time: formatDateTime(event.created_at) })}${deleted ? t("events.deletedSuffix", { time: formatDateTime(event.deleted_at) }) : ""}</p>
     </div>
     <div class="event-actions">${deleteButton}</div>
   `;

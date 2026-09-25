@@ -1,5 +1,6 @@
 // 称号系统渲染：装备槽位（上限来自 /api/meta）+ 称号库（未解锁/已装备状态）。
 
+import { t } from "../i18n/index.js";
 import { getState, getMeta } from "../state.js";
 import { dimensionName } from "../dimensions.js";
 import { escapeHtml, formatPercent } from "../utils.js";
@@ -18,10 +19,10 @@ export function renderTitles() {
       slot.className = `equipment-slot ${title ? "filled" : ""}`;
       if (title) {
         slot.innerHTML = `<div><div class="emoji">${title.emoji}</div><div class="name">${escapeHtml(title.name)}</div></div>`;
-        slot.title = "点击卸下";
+        slot.title = t("titles.unequipSlotTitle");
         slot.dataset.unequipSlot = titleId;
       } else {
-        slot.innerHTML = `<div><div class="emoji">＋</div><div class="name">空槽位</div></div>`;
+        slot.innerHTML = `<div><div class="emoji">＋</div><div class="name">${t("titles.emptySlot")}</div></div>`;
       }
       slotHost.appendChild(slot);
     }
@@ -32,7 +33,7 @@ export function renderTitles() {
   host.innerHTML = "";
   const titles = Object.values(state.titles || {});
   if (!titles.length) {
-    host.innerHTML = '<p class="muted">创建里程碑后会生成对应的称号。</p>';
+    host.innerHTML = `<p class="muted">${t("titles.empty")}</p>`;
     return;
   }
   titles.forEach((title) => {
@@ -46,16 +47,16 @@ export function renderTitles() {
         <span class="title-name">${title.emoji} ${escapeHtml(title.name)}</span>
         ${
           isEquipped
-            ? '<button class="small-button" data-unequip-title="' + title.id + '">卸下</button>'
+            ? `<button class="small-button" data-unequip-title="${title.id}">${t("titles.unequip")}</button>`
             : canEquip
-              ? '<button class="small-button" data-equip-title="' + title.id + '">装备</button>'
+              ? `<button class="small-button" data-equip-title="${title.id}">${t("titles.equip")}</button>`
               : unlocked
-                ? '<span class="meta-pill">已装备</span>'
-                : '<span class="meta-pill">未解锁</span>'
+                ? `<span class="meta-pill">${t("titles.equipped")}</span>`
+                : `<span class="meta-pill">${t("titles.locked")}</span>`
         }
       </div>
       <p>${escapeHtml(title.description)}</p>
-      <p>加成：${dimensionName(title.target_dimension || "professional")} ${formatPercent(title.bonus_percent)}</p>
+      <p>${t("titles.bonus", { dimension: dimensionName(title.target_dimension || "professional"), percent: formatPercent(title.bonus_percent) })}</p>
     `;
     host.appendChild(item);
   });

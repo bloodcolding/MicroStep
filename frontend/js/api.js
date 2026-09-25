@@ -1,4 +1,7 @@
 // 后端 API 访问层：将原 HTTP 路由映射为 Tauri v2 IPC invoke 调用。
+// （add-frontend-i18n：仅两条前端兜底错误文案接入 t()，路由表与 invoke 调用链零改动。）
+
+import { t } from "./i18n/index.js";
 
 const { invoke } = window.__TAURI__.core;
 
@@ -53,14 +56,14 @@ const camelKey = (key) => key.replace(/_([a-z])/g, (_, ch) => ch.toUpperCase());
 
 export async function api(path, options = {}) {
   const route = matchRoute(path);
-  if (!route) throw new Error("接口不存在");
+  if (!route) throw new Error(t("api.routeMissing"));
   const body = options.body ? JSON.parse(options.body) : {};
   const args = Object.fromEntries(
     Object.entries({ ...route.pathParams, ...body }).map(([key, value]) => [camelKey(key), value])
   );
   const payload = await invoke(route.command, args);
   if (payload && payload.ok === false) {
-    throw new Error(payload.error || "请求失败");
+  throw new Error(payload.error || t("api.requestFailed"));
   }
   return payload;
 }

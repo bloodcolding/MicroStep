@@ -1,5 +1,6 @@
 // 应用入口：初始化日期标签、绑定全局事件（列表交互用事件委托，渲染层不反向依赖 actions）。
 
+import { initI18n, getLocale, toggleLocale, onLocaleChanged, currentNumberLocale } from "./i18n/index.js";
 import { $ } from "./utils.js";
 import {
   setTaskSearchQuery,
@@ -9,23 +10,45 @@ import {
 } from "./state.js";
 import { renderTasks } from "./render/tasks.js";
 import { renderEpics } from "./render/epics.js";
-import { loadMeta, loadState } from "./controller.js";
+import { loadMeta, loadState, renderAll } from "./controller.js";
 import * as actions from "./actions.js";
 import * as modals from "./modals.js";
 import { closeModal, toast } from "./ui.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  $("#todayLabel").textContent = new Date().toLocaleDateString("zh-CN", {
+  initI18n();
+  updateTodayLabel();
+  updateLocaleToggleLabel();
+  bindEvents();
+  loadMeta().then(loadState).catch((error) => toast(error.message, true));
+});
+
+// 今日日期标签：格式化 locale 跟随界面语言。
+function updateTodayLabel() {
+  $("#todayLabel").textContent = new Date().toLocaleDateString(currentNumberLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "short",
   });
-  bindEvents();
-  loadMeta().then(loadState).catch((error) => toast(error.message, true));
-});
+}
+
+// 切换按钮显示另一语言的名称（zh 界面显示 EN，en 界面显示「中文」）。
+function updateLocaleToggleLabel() {
+  $("#localeToggle").textContent = getLocale() === "zh-CN" ? "EN" : "中文";
+}
 
 function bindEvents() {
+  $("#localeToggle").addEventListener("click", () => {
+    toggleLocale();
+    updateLocaleToggleLabel();
+  });
+  // 语言切换：静态文案由 setLocale 内部重放，这里补日期/按钮态并驱动全量重渲染。
+  onLocaleChanged(() => {
+    updateTodayLabel();
+    updateLocaleToggleLabel();
+    renderAll();
+  });
   $("#awakenTopBtn").addEventListener("click", actions.awaken);
   $("#refreshBtn").addEventListener("click", () => loadState().catch((error) => toast(error.message, true)));
   $("#newEpicBtn").addEventListener("click", () => modals.openEpicModal());
