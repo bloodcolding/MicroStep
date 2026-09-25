@@ -8,21 +8,27 @@
 ## 当前状态
 
 - **日期**: 2026-09-25
-- **健康度**: ✅ cargo test 119/119、exit=0；cargo build 零警告；openspec validate --all --strict 7/7 通过；实机隔离冒烟全过
-- **阶段**: **Change 4（add-frontend-i18n）Step 4 实现与验证完成，待 `ARCHIVE`**——静态审计 12/12 PASS（字典 177/182 键基名一致、非字典 JS 零中文字面量、硬编码 locale 清零、翻译边界护栏）；CDP 实机冒烟 36/36 PASS（隔离 identifier，多轮启动 --lang 控制系统语言）；cargo test 119/119、cargo build 零警告、openspec validate --strict 通过
+- **健康度**: ✅ cargo test 119/119、exit=0；cargo build 零警告；openspec validate --all --strict 8/8 通过（含 frontend-i18n）；实机隔离冒烟 36/36 全过
+- **阶段**: **Change 4（add-frontend-i18n）已归档**（frontend-i18n 新能力落账，8 个主规格）
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **add-frontend-i18n 收尾（待 ARCHIVE）**: 用户审阅验证报告 → `openspec archive add-frontend-i18n` → 归档区写结项总结
-2. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-3. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+2. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
 
 ## Suspended Tasks（暂存任务区）
 
 _（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
 
 ## 归档区（结项总结）
+
+### 2026-09-25 · add-frontend-i18n 结项：前端运行时多语言（zh-CN / en）
+
+- 四步法收官：TEST_PLAN（TC-U01~U12 / TC-I01~I14 / TC-E01~E04）→ 静态红基线 10/10 FAIL → 最简实现 → CDP 实机冒烟 36/36 + cargo test 119/119 全绿后归档；`openspec archive` 已落账 frontend-i18n 7 Requirement（主规格 8/8 validate --strict 通过）。
+- 交付：`frontend/js/i18n/`（index.js + 双字典 177/182 键，基名一致 + en `.one` 复数 5 组）；`t()` 插值/复数/zh-CN 回退 + AGENT-I18N warn；顶栏语言切换（两视图、零 IPC、localStorage 持久化、navigator 检测）；index.html 全量 data-i18n 标记（含 title/placeholder/aria/html lang）；19 个模块动态文案机械提取；dimensionName/fullName 字典优先三级兜底；数字/日期 locale 跟随；设置面板与业务模态打开态切换重建并保留 tab/表单值；Rust/IPC/schema/依赖零改动。
+- 验证方法论：无前端测试基建 → 静态审计（session 级命令，未入库）+ Node DOM-stub 模块图冒烟 22/22 + WebView2 CDP 实机冒烟（隔离 identifier + `--lang` 多轮启动控制 navigator.language；Emulation.setLocaleOverride 不影响它，首版踩坑）；冒烟抓到 modals.js 订阅器缺 `$` 导入的运行时 ReferenceError。
+- 关键口径：api.js 仅改 import + 两条前端兜底错误文案（R5 要求；路由表/invoke/IPC 契约零改动）；事件条目标题 `event.name`（后端生成嵌用户数据）按 R7 原文直显，类型 chip（前端生成）本地化；zh 视图类型 chip 由原始枚举变为中文描述。
 
 ### 2026-09-25 · add-settings-panel 结项：统一设置面板 + 同步入口迁移
 
