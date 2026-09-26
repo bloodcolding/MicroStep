@@ -27,13 +27,19 @@ pub fn init_data_dir(data_dir: &Path) -> PathBuf {
 /// `.git/HEAD` 已存在视为已是仓库，直接跳过（不覆盖既有仓库）。
 fn ensure_git_skeleton(data_dir: &Path) -> io::Result<()> {
     let git = data_dir.join(".git");
-    if git.join("HEAD").exists() {
-        return Ok(());
-    }
+    // 目录树幂等创建（含存量仓库）：config 开启 logallrefupdates 后，
+    // fetch/push 更新 ref 需写 reflog；Linux 上 gix/git2 不会自动逐级
+    // 创建 logs/ 父目录（Windows 恰好容忍），必须骨架期备齐（自愈旧骨架）。
     fs::create_dir_all(git.join("objects/info"))?;
     fs::create_dir_all(git.join("objects/pack"))?;
     fs::create_dir_all(git.join("refs/heads"))?;
     fs::create_dir_all(git.join("refs/tags"))?;
+    fs::create_dir_all(git.join("refs/remotes"))?;
+    fs::create_dir_all(git.join("logs/refs/heads"))?;
+    fs::create_dir_all(git.join("logs/refs/remotes"))?;
+    if git.join("HEAD").exists() {
+        return Ok(());
+    }
     fs::write(git.join("HEAD"), b"ref: refs/heads/main\n")?;
     fs::write(
         git.join("config"),

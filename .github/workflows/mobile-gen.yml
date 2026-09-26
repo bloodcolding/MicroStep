@@ -35,6 +35,11 @@ jobs:
           yes | "$sdkmanager" --licenses > /dev/null || true
           "$sdkmanager" "ndk;${NDK_VERSION}" > /dev/null
           ndk_home="$ANDROID_HOME/ndk/${NDK_VERSION}"
+          if [ ! -d "$ndk_home" ]; then
+            echo "::error::NDK ${NDK_VERSION} 未安装（${ndk_home} 不存在），实际已装："
+            ls "$ANDROID_HOME/ndk" 2>/dev/null || true
+            exit 1
+          fi
           {
             echo "ANDROID_NDK_HOME=$ndk_home"
             echo "ANDROID_NDK_ROOT=$ndk_home"
@@ -42,6 +47,7 @@ jobs:
             echo "ANDROID_NDK=$ndk_home"
             echo "CMAKE_TOOLCHAIN_FILE=$ndk_home/build/cmake/android.toolchain.cmake"
           } >> "$GITHUB_ENV"
+          echo "$ndk_home/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
 
       - uses: actions/setup-node@v4
         with:

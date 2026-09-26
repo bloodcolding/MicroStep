@@ -37,6 +37,11 @@ fn tc_i26_init_creates_dir_and_git_skeleton() {
     assert!(dir.join(".git/objects/pack").is_dir());
     assert!(dir.join(".git/refs/heads").is_dir());
     assert!(dir.join(".git/refs/tags").is_dir());
+    // reflog 目录树：config 开启 logallrefupdates，fetch/push 写 reflog
+    // 需父目录就位（Linux 上 gix/git2 不自动逐级创建，回归钉死）。
+    assert!(dir.join(".git/refs/remotes").is_dir());
+    assert!(dir.join(".git/logs/refs/heads").is_dir());
+    assert!(dir.join(".git/logs/refs/remotes").is_dir());
     assert_eq!(events, dir.join("events.jsonl"));
 }
 
