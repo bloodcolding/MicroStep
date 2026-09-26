@@ -8,13 +8,13 @@
 ## 当前状态
 
 - **日期**: 2026-09-26
-- **健康度**: 🟢 本地可验项全绿：cargo test 121/121、cargo build 零警告、openspec validate --strict 通过、workflow 静态审计 14/15（唯一待办 TC-C12 = gen 工程待 CI 生成回传）；本机 `cargo check --target aarch64-linux-android` 仍因无 NDK 在 aws-lc-sys 先败（权威绿在 CI android-check 作业）
-- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 实现完成，剩 CI 侧闭环**——`#[cfg(desktop)]` 守卫 / ci.yml / release.yml（guard+五作业+draft 聚合）/ mobile-gen.yml 脚手架 / 图标全集 / 文档均已落地；待用户 push 后跑 CI 首验 + mobile-gen 生成 gen/{android,apple} 回传入库 + tag 冒烟
+- **健康度**: 🟢 本地可验项全绿：cargo test 122/122（+tc_i29）、cargo build 零警告、openspec validate --strict 通过、workflow 静态审计 14/15（唯一待办 TC-C12 = gen 工程待 CI 生成回传）；本机 `cargo check --target aarch64-linux-android` 仍因无 NDK 在 aws-lc-sys 先败（权威绿在 CI android-check 作业）；**无 git 身份环境已本地复现验证**（隔离 HOME 下 sync_engine 19/19）
+- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 实现完成，CI 侧闭环迭代中（已 3 轮）**——aws-lc-sys（NDK 显式 CC/AR，已过）→ openssl-sys（路线 A vendored，ADR-005）→ Linux sync_engine 根因修复（骨架 [user] 身份，ADR-006/ERR-003）；本轮提交待 push 验证两作业双绿
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **CI 侧闭环（需用户配合 push）**: ① push 本提交 → 观察 `ci.yml` 首跑（重点：android-check 作业 aws-lc-sys/libgit2/openssl 交叉编译，D7 风险点，失败 ≤2 次纪律）→ ② Actions 手动触发 `mobile-gen.yml` → 下载 `gen-android` / `gen-apple` artifacts → 解包到 `src-tauri/gen/` + 补 gradle release 签名配置（keystore.properties 引用，README/官方口径）→ commit（TC-C12 转绿）
+1. **CI 侧闭环（需用户配合 push）**: ① push 本轮提交（vendored openssl + [user] 身份修复）→ 观察 `ci.yml`：Linux 与 android-check 双绿即过 → ② Actions 手动触发 `mobile-gen.yml` → 下载 `gen-android` / `gen-apple` artifacts → 解包到 `src-tauri/gen/` + 补 gradle release 签名配置（keystore.properties 引用，README/官方口径）→ commit（TC-C12 转绿）；android 仍红则读新 artifact（openssl 错误类已用 1 次额度，剩 1 次）
 2. **tag 冒烟（TC-V02/V03 + TC-R01~R08）**: 先负向（不匹配 tag 守卫 fail-fast）→ bump `0.2.1-rc1` 三处一致 → tag `v0.2.1-rc1` → 五类产物 + SHA256 + draft Release + Windows 本机安装 + Android 真机 + iOS 26.6 爱思自签；用户先配好 Android 四项 Secrets
 3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
 4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异

@@ -48,6 +48,26 @@
 
 ---
 
+## ADR-005 · 移动/macOS 目标 vendored OpenSSL（依赖白名单扩展）
+
+- **日期**: 2026-09-26
+- **状态**: Accepted
+- **背景**: CI android-check 在 `aws-lc-sys` 修复后推进到 `openssl-sys v0.9.117` 失败（ERR-002）：依赖链 `git2(https) → libgit2-sys → openssl-sys` 仅存在于 unix 目标（Windows 走 WinHTTP，本地开发从未暴露）；Android/iOS 无系统 OpenSSL 且 pkg-config 不支持交叉，macOS runner 的 brew openssl@3 为 keg-only 默认不可见。add-cicd-multiplatform design.md L71 已预判此风险并给出 vendored 方案；用户于 2026-09-26 批准路线 A（含 macOS）。
+- **决策**: 在 Cargo.toml 增加 target-gate 直依赖 `openssl-sys = { version = "0.9", features = ["vendored"] }`（`cfg(any(android, ios, macos))`），借 Cargo feature 统一使 libgit2 拉入的同一份 openssl-sys 走源码编译；Cargo.lock 新增 `openssl-src 300.6.1+3.6.3`（仅 +1 crate，ADR-002 白名单扩展）。Windows 图中无 openssl（不受影响），Linux 桌面维持系统 libssl-dev（apt 安装，不变）。openssl-src 经 cc crate 复用 CI 已设的 `CC_/AR_<target>` NDK/Xcode 工具链，Android 目标映射 `linux-aarch64` Configure（上游刻意绕开 NDK android target 坑）；perl/make 为 runner 自带，workflow 零改动。
+- **影响**: Android/iOS/macOS CI 构建时长 +2~4 分钟/目标（OpenSSL 3.x 源码编译一次并缓存）；`cargo tree` 验证目标边界——android/ios/macos 含 openssl-src、linux 仅系统链路、windows 完全无 openssl。ADR-004 的「data-sync 除 libgit2 外 SHALL NOT 引入其他 C 依赖」冲突沿用其既有豁免口径（rustls/aws-lc 同为 C，OpenSSL 为 libgit2 https 的既定代价）。
+
+---
+
+## ADR-006 · AppData git 骨架内置同步身份（[user] 段自给自足）
+
+- **日期**: 2026-09-26
+- **状态**: Accepted
+- **背景**: CI Linux sync_engine 14 例失败（`Git("The reflog could not be created or updated")` / fetch 侧 `Network("Failed to update references...")`）。根因定位：gix ref 事务写 reflog 需 committer 签名，从 config 的 user 身份解析；**无全局 git 身份的环境 committer=None → `MissingCommitter`**，外层错误串吞掉内因。本机因 `~/.gitconfig` 有身份而全绿——已通过隔离 HOME 在本地完整复现 14 例失败（7215b60 的 logs/ 目录树修复实为无效假设：gix `should_autocreate_reflog` 本就自建父目录）。CI 全新 Linux runner 与「未安装/未配置 git 的终端用户」同属此环境，属产品级缺陷而非 CI 环境问题。
+- **决策**: 骨架 config 内置 `[user] name = MicroStep / email = sync@microstep.local`（reflog committer 用）；存量骨架自愈——仅当 config 完全没有 `[user]` 段时追加，既有段落、值与 HEAD 原样保留（不覆盖）。提交对象签名不受影响（sync.rs 显式构造 "MicroStep Sync"，reflog 行身份仅为本地审计信息）。
+- **影响**: AppData git 仓库不再依赖用户全局 git 身份，符合 ADR-003 移动端就绪/无外部依赖约束；tc_i26 断言新骨架含身份段 + tc_i29 钉死自愈行为（HEAD 不动、原值保留）；隔离 HOME 环境下 sync_engine 19/19 由红转绿（本地等价复现 CI 条件）。
+
+---
+
 ## 格式约定
 
 ```markdown

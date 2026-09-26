@@ -42,6 +42,12 @@ fn tc_i26_init_creates_dir_and_git_skeleton() {
     assert!(dir.join(".git/refs/remotes").is_dir());
     assert!(dir.join(".git/logs/refs/heads").is_dir());
     assert!(dir.join(".git/logs/refs/remotes").is_dir());
+    // 骨架内置同步身份：gix ref 事务写 reflog 需 committer 签名，无全局
+    // git 身份的环境（CI 全新 runner / 未装 git 的终端用户）必须自给自足。
+    let config = fs::read_to_string(dir.join(".git/config")).unwrap();
+    assert!(config.contains("[user]"), "骨架 config 须含 [user] 段");
+    assert!(config.contains("name = MicroStep"));
+    assert!(config.contains("email = sync@microstep.local"));
     assert_eq!(events, dir.join("events.jsonl"));
 }
 
@@ -53,6 +59,33 @@ fn tc_i27_existing_git_repo_untouched() {
     fs::write(dir.join(".git/HEAD"), "ref: refs/heads/master\n").unwrap();
     data_dir::init_data_dir(&dir);
     assert_eq!(fs::read_to_string(dir.join(".git/HEAD")).unwrap(), "ref: refs/heads/master\n");
+}
+
+/// TC-I29 · 存量骨架自愈：config 缺 [user] 段时补同步身份（gix ref 事务写
+/// reflog 需 committer；无全局 git 身份环境 ref 更新会整体失败，ERR-002 根因），
+/// 既有段落与 HEAD 原样保留（仅追加，不覆盖）。
+#[test]
+fn tc_i29_self_heal_missing_user_identity() {
+    let dir = unique_dir("i29");
+    fs::create_dir_all(dir.join(".git/refs/heads")).unwrap();
+    fs::write(dir.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+    fs::write(
+        dir.join(".git/config"),
+        "[core]\n\trepositoryformatversion = 0\n\tfilemode = false\n\tbare = false\n\tlogallrefupdates = true\n",
+    )
+    .unwrap();
+    data_dir::init_data_dir(&dir);
+    assert_eq!(
+        fs::read_to_string(dir.join(".git/HEAD")).unwrap(),
+        "ref: refs/heads/main\n",
+        "HEAD 不被改写"
+    );
+    let config = fs::read_to_string(dir.join(".git/config")).unwrap();
+    assert!(config.contains("[core]"), "原有配置段落保留");
+    assert!(config.contains("logallrefupdates = true"), "原有配置值保留");
+    assert!(config.contains("[user]"), "自愈补 [user] 段");
+    assert!(config.contains("name = MicroStep"));
+    assert!(config.contains("email = sync@microstep.local"));
 }
 
 /// TC-I28 · 存量数据不覆盖：已有 events.jsonl 的目录初始化后重放续写，
