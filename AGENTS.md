@@ -50,10 +50,12 @@
 | 启动应用（开发窗口） | `cargo run`（在 `src-tauri\` 下执行） |
 | 发布构建 | `cargo build --release`（产物 `src-tauri\target\release\microstep.exe`） |
 | 打安装包 | `npx -y @tauri-apps/cli build`（产物 `src-tauri\target\release\bundle\`，需 Node） |
-| 全量测试 = 唯一 Check 命令 | `cargo test`（在 `src-tauri\` 下执行；79 例含 golden 回归） |
+| 全量测试 = 唯一 Check 命令 | `cargo test`（在 `src-tauri\` 下执行；121 例含 golden 回归） |
+| CI 回归 | push master / PR 自动触发 `.github/workflows/ci.yml`（cargo test/build --locked + Android 目标 check） |
+| 全平台发布 | 打 tag `v*` 触发 `.github/workflows/release.yml`（版本守卫 → 五平台产物 → 草稿 Release） |
 
 - `cargo test` 中 store/commands/data_dir 等测试均用 tempdir 隔离，不触碰真实事件流；golden 回归以 Python 版导出的 State 快照为基准资产，行为漂移会被立即捕获。
-- 本仓库**没有** lint / typecheck / formatter / CI 配置，不要自行引入；"检查通过" = `cargo test` 全绿（+ `cargo build` 无新增警告）。
+- 本仓库**没有** lint / typecheck / formatter 配置，不要自行引入；CI 仅有 `.github/workflows/{ci,release,mobile-gen}.yml`（本地全量 Check 仍是 `cargo test`，CI 是推送后的补充回归；不要新增其他流水线）。"检查通过" = `cargo test` 全绿（+ `cargo build` 无新增警告）。
 - `cargo run` / `cargo build` 是挂起或长命令：必须后台运行或提示用户手动执行，禁止阻塞主对话终端。
 - 前端资源在**编译期内嵌**：改前端必须 `cargo build` 后重启应用（无热重载）；改 Rust 同样需重启。
 - WebView2 可开 CDP 调试：设 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"` 后启动，即可用浏览器自动化工具接入实机 UI（冒烟实测方法）。

@@ -79,7 +79,7 @@ workflow 直接 `npx -y @tauri-apps/cli@<钉版本> build ...`，与本地手工
 ### D9 · 图标与移动工程入库
 
 - 现有图标仅 32/128 png + ico；`tauri icon` 自 128px 源放大生成全套（icns / Android mipmap / iOS Assets）——放大会有轻微模糊，属可接受取舍（不引入新设计资产）；`tauri.conf.json` icons 列表同步扩充。
-- `src-tauri/gen/{android,ios}` init 后**入库**（CI 不在运行时生成移动工程，保证可复现）；`.gitignore` 现仅忽略 `src-tauri/gen/schemas/`，不影响 `gen/android`、`gen/ios`，入库前核对生成物清单。
+- `src-tauri/gen/{android,apple}` init 后**入库**（CI 不在运行时生成移动工程，保证可复现；`gen/apple` 为 Tauri v2 iOS 工程实际目录名）；`.gitignore` 现仅忽略 `src-tauri/gen/schemas/`，不影响 `gen/android`、`gen/apple`，入库前核对生成物清单。本机（Windows）无 NDK / Xcode → `mobile-gen.yml`（workflow_dispatch）在 ubuntu / macos runner 一次性生成并以 artifact 回传入库，符合「CI 运行时零生成」。
 
 ### D10 · 文档口径切换
 
@@ -100,4 +100,4 @@ workflow 直接 `npx -y @tauri-apps/cli@<钉版本> build ...`，与本地手工
 ## Rollout / Rollback
 
 - **Rollout**：Phase 1 合入后以预发布版本号冒烟（bump `0.2.1-rc1` → tag `v0.2.1-rc1`，版本守卫兼容预发布号），确认三平台产物可下载安装；Phase 2 同法冒烟至真机。正式发布由用户择时 bump `0.2.1` + tag。
-- **Rollback**：删除 `.github/workflows/` 与 `src-tauri/gen/{android,ios}` 即回到无 CI 状态；`lib.rs` cfg 守卫可保留（桌面行为零变化）；新增图标资产无害残留。
+- **Rollback**：删除 `.github/workflows/` 与 `src-tauri/gen/{android,apple}` 即回到无 CI 状态；`lib.rs` cfg 守卫可保留（桌面行为零变化）；新增图标资产无害残留。

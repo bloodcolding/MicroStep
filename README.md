@@ -26,6 +26,43 @@ cargo build --release
 npx -y @tauri-apps/cli build
 ```
 
+## 持续集成与发布（GitHub Actions）
+
+本地打包只产出当前平台安装包；全平台构建与发布走 GitHub Actions（`.github/workflows/`）：
+
+- **CI（`ci.yml`）**：push `master` / 所有 PR 在 Linux runner 执行 `cargo test --locked` + `cargo build --locked`，并做 `aarch64-linux-android` 移动目标编译回归；同一分支新 push 自动取消旧运行。
+- **发布（`release.yml`）**：仅 **tag `v*`** 触发。首个「版本守卫」作业校验 tag 与 `src-tauri/tauri.conf.json` 的 `version` 严格一致（预发布号合法，如 `v0.2.1-rc1` ↔ `0.2.1-rc1`），不一致 fail-fast、不消耗任何构建资源。随后五平台并行构建，产物与 SHA256 校验和汇总为**草稿 Release**，人工确认后再发布：
+
+  | 作业 | 产物 |
+  | --- | --- |
+  | Windows x64 | NSIS setup `.exe` + `.msi` |
+  | macOS universal | 单 `.dmg`（Intel + Apple Silicon） |
+  | Linux（ubuntu-22.04） | `.deb` + `.rpm` + `.AppImage` |
+  | Android | aarch64 / x86_64 双 ABI **已签名** release APK |
+  | iOS | `debugging` 导出的**未签名** `.ipa` |
+
+发布动作 = bump `src-tauri/tauri.conf.json` + `src-tauri/Cargo.toml`（连同 `Cargo.lock` 中自身版本）→ commit → 打同名 annotated tag（如 `v0.2.1`）→ push tag。
+
+移动构建工程 `src-tauri/gen/android`、`src-tauri/gen/apple` 随源码入库，CI 运行时零生成；`mobile-gen.yml` 是仅手动触发的一次性脚手架工作流（本机无 Android SDK/Xcode 时生成一次、回传入库）。
+
+### Android 签名（一次性配置）
+
+keystore 本地生成、永不入库：
+
+```powershell
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+在 GitHub 仓库 Settings → Secrets and variables → Actions 配置四项：`ANDROID_KEYSTORE_BASE64`（keystore 文件的 base64，Windows 可用 `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks"))` 生成）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。任一项缺失时 Android 作业会显式失败，不会静默产出未签名包。CI 在运行时把 keystore 解码到 runner 临时目录并生成 `keystore.properties`，两者都不入库。
+
+### iOS 未签名包自签（7 天时效）
+
+iOS 产物为 `debugging` 导出的未签名 `.ipa`，构建全程不依赖 Apple 开发者账号或证书。iPhone 无法直装未签名包，需电脑端自签侧载：
+
+1. 电脑安装**爱思助手**或 **Sideloadly**，用免费 Apple ID 对下载的 `.ipa` 自签并安装；
+2. 免费 Apple ID 签名有效期 **7 天**，到期后连接电脑重签（约 30 秒，应用数据保留）；
+3. 首次安装后在 iPhone「设置 → 通用 → VPN 与设备管理」信任该 Apple ID。
+
 ## 数据存储与迁移
 
 事件流不再位于仓库工作目录，而是存储于系统应用数据目录（Tauri `app_data_dir()`）：
@@ -140,7 +177,7 @@ docs/harness/       # 进度、决策（ADR）、错误索引
 
 ```powershell
 cd src-tauri
-cargo test    # 79 例：domain 31 + store 18 + golden 3 + commands 22 + data_dir 3 + ticker 2
+cargo test    # 121 例：domain 31 + store 18 + golden 3 + commands 22 + data_dir 3 + ticker 2 + sync 40 + app_shell 2
 ```
 
 golden 回归：以 Python 版导出的 State 快照（真实流 + 构造序列覆盖全部 14 种事件）为基准资产，Rust 版重放相同输入要求归一化零差异。

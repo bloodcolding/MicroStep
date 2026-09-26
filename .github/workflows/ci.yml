@@ -1,0 +1,72 @@
+# CI：push master / PR 全量回归（ci-cd spec「持续集成检查」）。
+# - Linux：cargo test --locked + cargo build --locked（本地全量 Check 的 CI 侧镜像）
+# - Android：aarch64-linux-android 编译回归（移动目标可编译红线）
+# cargo 一律 --locked（依赖白名单由 Cargo.lock 锁定，ADR-002/004）。
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# 同一分支新 push 取消仍在跑的旧运行，以最新提交结果为准。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # 钉版本 Tauri CLI（构建可复现性：不使用 latest / 裸主版本）。
+  TAURI_CLI_VERSION: 2.11.4
+
+jobs:
+  test:
+    name: Linux 全量回归（cargo test + build）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo test --locked（含 golden 回归）
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+
+      - name: cargo build --locked
+        run: cargo build --locked --manifest-path src-tauri/Cargo.toml
+
+  android-check:
+    name: Android 目标编译回归（aarch64-linux-android）
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 27.1.12297006
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: 安装 Android NDK（钉版本）
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" "ndk;${NDK_VERSION}" > /dev/null
+          ndk_home="$ANDROID_HOME/ndk/${NDK_VERSION}"
+          {
+            echo "ANDROID_NDK_HOME=$ndk_home"
+            echo "ANDROID_NDK_ROOT=$ndk_home"
+            echo "NDK_HOME=$ndk_home"
+          } >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: aarch64-linux-android
+
+      # aws-lc-sys / vendored openssl / libgit2 的 C 交叉编译全部经 NDK clang。
+      - name: cargo check --target aarch64-linux-android --locked
+        run: cargo check --target aarch64-linux-android --locked --manifest-path src-tauri/Cargo.toml

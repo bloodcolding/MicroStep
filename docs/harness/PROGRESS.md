@@ -7,17 +7,18 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-25
-- **健康度**: ✅ cargo test 119/119、exit=0；openspec validate add-cicd-multiplatform --strict 通过（本会话仅新增规格文档，代码零改动）
-- **阶段**: **Change 5（add-cicd-multiplatform）Step 1+2 已过门禁**——GitHub Actions 全平台发布：桌面三平台 + Android 签名 APK + iOS 26.6 未签名 ipa（7 天自签口径）；两阶段交付（桌面先行）
+- **日期**: 2026-09-26
+- **健康度**: 🟢 本地可验项全绿：cargo test 121/121、cargo build 零警告、openspec validate --strict 通过、workflow 静态审计 14/15（唯一待办 TC-C12 = gen 工程待 CI 生成回传）；本机 `cargo check --target aarch64-linux-android` 仍因无 NDK 在 aws-lc-sys 先败（权威绿在 CI android-check 作业）
+- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 实现完成，剩 CI 侧闭环**——`#[cfg(desktop)]` 守卫 / ci.yml / release.yml（guard+五作业+draft 聚合）/ mobile-gen.yml 脚手架 / 图标全集 / 文档均已落地；待用户 push 后跑 CI 首验 + mobile-gen 生成 gen/{android,apple} 回传入库 + tag 冒烟
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **新会话执行 Step 3（TDD，会话隔离）**: 只加载 `openspec/changes/add-cicd-multiplatform/` 规格 → 输出 TEST_PLAN（workflow 语法校验 + tag 冒烟清单 + Rust 守卫移动目标编译红绿）→ 等 `TEST_PLAN_APPROVED` → 红基线 → 等 `CONTINUE` → Step 4 实现（Phase 1 桌面管线先行验收，Phase 2 移动端）
-2. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
-3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 `npx -y @tauri-apps/cli build` 产物
+1. **CI 侧闭环（需用户配合 push）**: ① push 本提交 → 观察 `ci.yml` 首跑（重点：android-check 作业 aws-lc-sys/libgit2/openssl 交叉编译，D7 风险点，失败 ≤2 次纪律）→ ② Actions 手动触发 `mobile-gen.yml` → 下载 `gen-android` / `gen-apple` artifacts → 解包到 `src-tauri/gen/` + 补 gradle release 签名配置（keystore.properties 引用，README/官方口径）→ commit（TC-C12 转绿）
+2. **tag 冒烟（TC-V02/V03 + TC-R01~R08）**: 先负向（不匹配 tag 守卫 fail-fast）→ bump `0.2.1-rc1` 三处一致 → tag `v0.2.1-rc1` → 五类产物 + SHA256 + draft Release + Windows 本机安装 + Android 真机 + iOS 26.6 爱思自签；用户先配好 Android 四项 Secrets
+3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
+4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+5. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
 
 ## Suspended Tasks（暂存任务区）
 

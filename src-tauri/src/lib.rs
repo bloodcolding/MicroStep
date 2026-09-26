@@ -29,14 +29,19 @@ const TICK_INTERVAL: Duration = Duration::from_secs(600);
 /// + 启动 best-effort pull + Ticker）→ 17 个 command（ipc-api spec 白名单）。
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            // 二次启动：焦点转交既有主窗口后新进程自行退出（插件行为）。
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }))
+    let builder = tauri::Builder::default();
+    // single-instance 为桌面专属插件（插件 crate 在 android/ios 目标整体
+    // cfg 掉）：语句级 #[cfg(desktop)] 门控保证移动目标可编译，桌面注册
+    // 顺序不变（须最先注册）。
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        // 二次启动：焦点转交既有主窗口后新进程自行退出（插件行为）。
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+    }));
+    builder
         .setup(|app| {
             let data_dir = app
                 .path()

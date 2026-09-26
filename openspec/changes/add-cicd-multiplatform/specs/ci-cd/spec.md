@@ -110,7 +110,7 @@ Android 签名 keystore 及其口令 SHALL 仅经 GitHub Secrets 注入，SHALL 
 
 ### Requirement: 构建可复现性
 
-流水线 SHALL 以 Cargo.lock 锁定 Rust 依赖（全部 cargo 命令 `--locked`）、以明写版本号钉住 Tauri CLI、使用 stable Rust 工具链，并启用按 Cargo.lock 键控的 Rust 构建缓存；移动构建工程 SHALL 入库（`src-tauri/gen/{android,ios}`），CI SHALL NOT 在运行时重新生成移动工程。
+流水线 SHALL 以 Cargo.lock 锁定 Rust 依赖（全部 cargo 命令 `--locked`）、以明写版本号钉住 Tauri CLI、使用 stable Rust 工具链，并启用按 Cargo.lock 键控的 Rust 构建缓存；移动构建工程 SHALL 入库（`src-tauri/gen/{android,apple}`），CI SHALL NOT 在运行时重新生成移动工程。
 
 #### Scenario: 依赖锁定审计
 
@@ -125,4 +125,4 @@ Android 签名 keystore 及其口令 SHALL 仅经 GitHub Secrets 注入，SHALL 
 #### Scenario: 移动工程随源码演进
 
 - **WHEN** 移动工程配置需要调整
-- **THEN** 以源码提交方式修改 `src-tauri/gen/{android,ios}` 后生效，CI 运行时零生成
+- **THEN** 以源码提交方式修改 `src-tauri/gen/{android,apple}` 后生效，CI 运行时零生成

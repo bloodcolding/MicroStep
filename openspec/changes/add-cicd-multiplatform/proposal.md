@@ -12,7 +12,7 @@
 - **平台矩阵**：Windows x64（NSIS `.exe` + MSI）；macOS universal（`universal-apple-darwin` 单 `.dmg` 双架构）；Linux ubuntu-22.04（deb + rpm + AppImage）；Android（aarch64 + x86_64，release 签名 APK，keystore 仅经 GitHub Secrets 注入）；iOS（`--export-method debugging` 未签名 ipa，用户本机用免费 Apple ID 经爱思助手/Sideloadly 自签侧载，无 Apple 开发者账号依赖；用户实机 iOS 26.6，TrollStore 永久安装路线不可用）。
 - **MODIFIED `app-shell`「单实例运行」**：明确为桌面目标范围；移动目标依赖操作系统自身的应用单实例语义。
 - **MODIFIED `app-shell`「移动端就绪约束」**：桌面专属插件（single-instance）SHALL 以 `#[cfg(desktop)]` 编译门控挂载，移动目标（`aarch64-linux-android` / `aarch64-apple-ios`）SHALL 保持可编译；无 sidecar / 子进程不变量维持。
-- **前置资产补齐**：`src-tauri/icons/` 全平台图标集（icns / Android / iOS，自现有 128px 源放大生成，接受轻微模糊）；`tauri android init` / `tauri ios init` 生成 `src-tauri/gen/{android,ios}` 构建工程入库。
+- **前置资产补齐**：`src-tauri/icons/` 全平台图标集（icns / Android / iOS，自现有 128px 源放大生成，接受轻微模糊）；`tauri android init` / `tauri ios init` 生成 `src-tauri/gen/{android,apple}` 构建工程入库（Tauri v2 实际产物目录：iOS 工程位于 `gen/apple`）。
 - **两阶段交付**：Phase 1 桌面管线（CI + 三平台打包 + Release）先行落地验收；Phase 2 移动端（构建工程 + cfg 守卫 + C 依赖交叉编译 + Android 签名 + iOS 未签名包）跟进，风险隔离互不阻塞。
 - **零业务侵入**：IPC command（仍 17 个）、事件 schema、前端代码、Cargo 依赖全部零改动；Rust 侧仅 `lib.rs` 一处 `#[cfg(desktop)]` 插件守卫。
 
@@ -28,7 +28,7 @@
 
 ## Impact
 
-- **代码 / 结构**：新增 `.github/workflows/{ci,release}.yml`；新增 `src-tauri/gen/{android,ios}`（init 生成的 gradle / xcodeproj 工程入库）；`src-tauri/icons/` 补全平台图标集；`src-tauri/src/lib.rs` 加一行 `#[cfg(desktop)]` 守卫；`tauri.conf.json` icons 列表扩充；AGENTS.md / README / PROGRESS.md 文档同步。
+- **代码 / 结构**：新增 `.github/workflows/{ci,release,mobile-gen}.yml`（`mobile-gen` 为仅手动触发的一次性脚手架工作流，本机无 SDK/Xcode 时生成移动工程后回传入库）；新增 `src-tauri/gen/{android,apple}`（init 生成的 gradle / xcodeproj 工程入库）；`src-tauri/icons/` 补全平台图标集；`src-tauri/src/lib.rs` 加 `#[cfg(desktop)]` 守卫；`tauri.conf.json` icons 列表扩充；AGENTS.md / README / PROGRESS.md 文档同步。
 - **依赖**：Rust 依赖树与前端依赖零新增；Tauri CLI 与 GitHub Actions 仅存在于 workflow（CLI 经 `npx -y @tauri-apps/cli@<钉版本>` 使用，版本明写于 YAML），不进入 Cargo.lock、不引入 package.json。
 - **数据**：零变更（事件流 / sync.json schema、存储位置、IPC 契约全不动；流水线不触碰真实用户数据）。
 - **文档**：AGENTS.md「本仓库没有 CI 配置」口径修订；README 增补 CI 发布路径与 iOS 自签 / Android 安装操作；PROGRESS.md 例行更新。
