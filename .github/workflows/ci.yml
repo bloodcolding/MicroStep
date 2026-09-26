@@ -15,7 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CARGO_TERM_COLOR: always
+  # never：保证日志无 ANSI 色码，失败摘要提取可稳定 grep。
+  CARGO_TERM_COLOR: never
   # 钉版本 Tauri CLI（构建可复现性：不使用 latest / 裸主版本）。
   TAURI_CLI_VERSION: 2.11.4
 
@@ -53,8 +54,20 @@ jobs:
       - name: 失败摘要提取（Annotation）
         if: failure()
         run: |
-          msg=$(grep -A 12 -m 1 '^error' test.log build.log 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
+          sed -e 's/\x1b\[[0-9;]*m//g' test.log > test.log.clean 2>/dev/null || true
+          sed -e 's/\x1b\[[0-9;]*m//g' build.log > build.log.clean 2>/dev/null || true
+          msg=$(grep -h -A 12 -m 1 '^error' test.log.clean build.log.clean 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
           if [ -n "$msg" ]; then echo "::error::Linux 回归首个错误块：%0A${msg}"; fi
+
+      - name: 上传失败日志 artifact（ci-logs-linux）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-linux
+          if-no-files-found: ignore
+          path: |
+            test.log
+            build.log
 
   android-check:
     name: Android 目标编译回归（aarch64-linux-android）
@@ -97,9 +110,18 @@ jobs:
         if: failure()
         run: |
           echo "NDK=$ANDROID_NDK_HOME"
+          sed -e 's/\x1b\[[0-9;]*m//g' android-check.log > android-check.log.clean
           echo '--- first error block ---'
-          grep -A 40 -m 1 '^error' android-check.log || true
+          grep -A 40 -m 1 '^error' android-check.log.clean || true
           echo '--- build script stderr ---'
-          grep -A 20 -m 1 -- '--- stderr' android-check.log || true
-          msg=$(grep -A 12 -m 1 '^error' android-check.log | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
+          grep -A 20 -m 1 -- '--- stderr' android-check.log.clean || true
+          msg=$(grep -A 12 -m 1 '^error' android-check.log.clean | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
           if [ -n "$msg" ]; then echo "::error::Android check 首个错误块：%0A${msg}"; fi
+
+      - name: 上传失败日志 artifact（ci-logs-android）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-android
+          if-no-files-found: ignore
+          path: android-check.log
