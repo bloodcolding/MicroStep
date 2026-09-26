@@ -77,4 +77,19 @@ jobs:
 
       # aws-lc-sys / vendored openssl / libgit2 的 C 交叉编译全部经 NDK clang。
       - name: cargo check --target aarch64-linux-android --locked
-        run: cargo check --target aarch64-linux-android --locked --manifest-path src-tauri/Cargo.toml
+        run: |
+          set -o pipefail
+          cargo check --target aarch64-linux-android --locked --manifest-path src-tauri/Cargo.toml 2>&1 | tee android-check.log
+
+      # 排障闭环：仓库私有、无 API 权限时，把首个错误块（含 build script
+      # stderr）提升为 Annotations，Actions 页面免翻日志即可定位失败原因。
+      - name: 失败摘要提取（Annotation）
+        if: failure()
+        run: |
+          echo "NDK=$ANDROID_NDK_HOME"
+          echo '--- first error block ---'
+          grep -A 40 -m 1 '^error' android-check.log || true
+          echo '--- build script stderr ---'
+          grep -A 20 -m 1 -- '--- stderr' android-check.log || true
+          msg=$(grep -A 12 -m 1 '^error' android-check.log | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
+          if [ -n "$msg" ]; then echo "::error::Android check 首个错误块：%0A${msg}"; fi
