@@ -19,7 +19,7 @@ jobs:
     name: 版本守卫（tag 与 tauri.conf.json 强一致）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # 严格字符串相等，预发布号合法（v0.2.1-rc1 ↔ 0.2.1-rc1）；
       # 失败则 fail-fast，全部构建作业因 needs 被跳过，不消耗构建资源。
@@ -38,7 +38,7 @@ jobs:
     needs: guard
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -74,7 +74,7 @@ jobs:
     needs: guard
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -111,7 +111,7 @@ jobs:
     needs: guard
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 系统依赖（webkit2gtk 等）
         run: |
@@ -155,7 +155,7 @@ jobs:
     env:
       NDK_VERSION: 27.1.12297006
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-java@v4
         with:
@@ -248,7 +248,7 @@ jobs:
     needs: guard
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:

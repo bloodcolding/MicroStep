@@ -18,7 +18,7 @@ jobs:
     env:
       NDK_VERSION: 27.1.12297006
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-java@v4
         with:
@@ -58,7 +58,7 @@ jobs:
     name: 生成 src-tauri/gen/apple
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:

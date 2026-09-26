@@ -24,7 +24,15 @@ jobs:
     name: Linux 全量回归（cargo test + build）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      # tauri 在 Linux 编译需要 webkit2gtk 等系统依赖；gix/git2 的 https
+      # 链路（openssl-sys）需要 libssl-dev + pkg-config（Windows 走 WinHTTP
+      # 后端故本地未暴露）。
+      - name: 系统依赖（webkit2gtk / openssl）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev cmake pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -44,7 +52,7 @@ jobs:
     env:
       NDK_VERSION: 27.1.12297006
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
