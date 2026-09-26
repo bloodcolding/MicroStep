@@ -56,8 +56,13 @@ jobs:
         run: |
           sed -e 's/\x1b\[[0-9;]*m//g' test.log > test.log.clean 2>/dev/null || true
           sed -e 's/\x1b\[[0-9;]*m//g' build.log > build.log.clean 2>/dev/null || true
+          enc() { sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950; }
           msg=$(grep -h -A 12 -m 1 '^error' test.log.clean build.log.clean 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
           if [ -n "$msg" ]; then echo "::error::Linux 回归首个错误块：%0A${msg}"; fi
+          panics=$(grep -h -A 14 -m 2 -- '^---- .* stdout ----' test.log.clean build.log.clean 2>/dev/null | enc)
+          if [ -n "$panics" ]; then echo "::error::失败测试 panic 块：%0A${panics}"; fi
+          summary=$(grep -h -A 15 -m 1 '^failures:' test.log.clean 2>/dev/null | enc)
+          if [ -n "$summary" ]; then echo "::error::failures 清单：%0A${summary}"; fi
 
       - name: 上传失败日志 artifact（ci-logs-linux）
         if: failure()
@@ -91,6 +96,8 @@ jobs:
             echo "ANDROID_NDK_HOME=$ndk_home"
             echo "ANDROID_NDK_ROOT=$ndk_home"
             echo "NDK_HOME=$ndk_home"
+            echo "ANDROID_NDK=$ndk_home"
+            echo "CMAKE_TOOLCHAIN_FILE=$ndk_home/build/cmake/android.toolchain.cmake"
           } >> "$GITHUB_ENV"
 
       - uses: Swatinem/rust-cache@v2
@@ -115,8 +122,13 @@ jobs:
           grep -A 40 -m 1 '^error' android-check.log.clean || true
           echo '--- build script stderr ---'
           grep -A 20 -m 1 -- '--- stderr' android-check.log.clean || true
+          enc() { sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950; }
           msg=$(grep -A 12 -m 1 '^error' android-check.log.clean | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
           if [ -n "$msg" ]; then echo "::error::Android check 首个错误块：%0A${msg}"; fi
+          stderr=$(grep -A 30 -m 1 -- '--- stderr' android-check.log.clean | enc)
+          if [ -n "$stderr" ]; then echo "::error::build script stderr：%0A${stderr}"; fi
+          tailmsg=$(tail -n 25 android-check.log.clean | enc)
+          if [ -n "$tailmsg" ]; then echo "::error::日志尾 25 行：%0A${tailmsg}"; fi
 
       - name: 上传失败日志 artifact（ci-logs-android）
         if: failure()

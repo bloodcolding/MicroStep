@@ -176,6 +176,8 @@ jobs:
             echo "ANDROID_NDK_HOME=$ndk_home"
             echo "ANDROID_NDK_ROOT=$ndk_home"
             echo "NDK_HOME=$ndk_home"
+            echo "ANDROID_NDK=$ndk_home"
+            echo "CMAKE_TOOLCHAIN_FILE=$ndk_home/build/cmake/android.toolchain.cmake"
           } >> "$GITHUB_ENV"
 
       - uses: Swatinem/rust-cache@v2
