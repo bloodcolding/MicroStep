@@ -41,10 +41,20 @@ jobs:
           workspaces: src-tauri
 
       - name: cargo test --locked（含 golden 回归）
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+        run: |
+          set -o pipefail
+          cargo test --locked --manifest-path src-tauri/Cargo.toml 2>&1 | tee test.log
 
       - name: cargo build --locked
-        run: cargo build --locked --manifest-path src-tauri/Cargo.toml
+        run: |
+          set -o pipefail
+          cargo build --locked --manifest-path src-tauri/Cargo.toml 2>&1 | tee build.log
+
+      - name: 失败摘要提取（Annotation）
+        if: failure()
+        run: |
+          msg=$(grep -A 12 -m 1 '^error' test.log build.log 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-950)
+          if [ -n "$msg" ]; then echo "::error::Linux 回归首个错误块：%0A${msg}"; fi
 
   android-check:
     name: Android 目标编译回归（aarch64-linux-android）
