@@ -241,7 +241,7 @@ jobs:
           } > keystore.properties
 
       - name: Tauri android build（双 ABI release APK）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android build --apk --target aarch64,x86_64 --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android build --apk --target aarch64 x86_64 --ci -- --locked
 
       - name: 验证 APK 签名（apksigner）
         run: |

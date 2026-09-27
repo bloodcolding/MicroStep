@@ -51,8 +51,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.2.0
-        CFBundleVersion: "0.2.0"
+        CFBundleShortVersionString: 0.2.1-rc1
+        CFBundleVersion: "0.2.1-rc1"
     entitlements:
       path: microstep_iOS/microstep_iOS.entitlements
     scheme:
@@ -68,6 +68,11 @@ targets:
         LIBRARY_SEARCH_PATHS[arch=arm64]: $(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
         EXCLUDED_ARCHS[sdk=iphoneos*]: x86_64
+        # 未签名构建（debugging 导出给爱思/Sideloadly 自签）：构建期不要求
+        # 开发团队/证书，零 Apple 账号依赖（release.yml ios 作业口径）。
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
       groups: [app]
     dependencies:
       - framework: libapp.a
