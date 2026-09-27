@@ -51,8 +51,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.2.1-rc1
-        CFBundleVersion: "0.2.1-rc1"
+        CFBundleShortVersionString: 0.2.1-rc2
+        CFBundleVersion: "0.2.1-rc2"
     entitlements:
       path: microstep_iOS/microstep_iOS.entitlements
     scheme:

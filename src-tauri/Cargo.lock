@@ -3171,7 +3171,7 @@ dependencies = [
 
 [[package]]
 name = "microstep"
-version = "0.2.1-rc1"
+version = "0.2.1-rc2"
 dependencies = [
  "chrono",
  "git2",
