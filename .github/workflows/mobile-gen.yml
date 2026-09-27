@@ -54,7 +54,7 @@ jobs:
           node-version: 22
 
       - name: tauri android init（一次性脚手架，产物回传入库）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android init --ci --manifest-path src-tauri/Cargo.toml
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android init --ci
 
       - uses: actions/upload-artifact@v4
         with:
@@ -77,7 +77,7 @@ jobs:
           node-version: 22
 
       - name: tauri ios init（一次性脚手架，产物回传入库）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios init --ci --manifest-path src-tauri/Cargo.toml
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios init --ci
 
       - uses: actions/upload-artifact@v4
         with:
