@@ -5,8 +5,8 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use microstep_lib::sync::{
-    apply_sync_config_update, load_sync_config, mask_pat, save_sync_config, SyncConfig,
-    SyncConfigUpdate,
+    apply_sync_config_update, authenticated_url, load_sync_config, mask_pat, save_sync_config,
+    SyncConfig, SyncConfigUpdate,
 };
 
 fn unique_dir(tag: &str) -> std::path::PathBuf {
@@ -155,4 +155,38 @@ fn tc_u05_short_pat_fully_masked() {
     let masked = mask_pat("x1234");
     assert!(masked.ends_with("1234"));
     assert!(!masked.contains('x'));
+}
+
+/// TC-U26 · 移动端输入加固：remote_url / pat 保存时去除首尾空白（自动填充常带空格/换行）。
+#[test]
+fn tc_u26_update_trims_url_and_pat() {
+    let mut cfg = load_sync_config(&unique_dir("u26"));
+    apply_sync_config_update(
+        &mut cfg,
+        &SyncConfigUpdate {
+            remote_url: Some("  https://example.com/a.git \r\n".into()),
+            pat: Some(" tok_en \n".into()),
+            branch: Some(" main ".into()),
+        },
+    );
+    assert_eq!(cfg.remote_url, "https://example.com/a.git", "URL 应去除首尾空白");
+    assert_eq!(cfg.pat, "tok_en", "PAT 应去除首尾空白");
+    assert_eq!(cfg.branch, "main");
+}
+
+/// TC-U27 · scheme 大小写不敏感：移动键盘自动大写（Https://）不得阻断 PAT 注入，
+/// 否则匿名访问私有仓库会收到 GitHub 404 HTML（表现为 dumb protocol 报错）。
+#[test]
+fn tc_u27_authenticated_url_scheme_case_insensitive() {
+    assert_eq!(
+        authenticated_url("HTTPS://github.com/u/r.git", "pat"),
+        "HTTPS://microstep:pat@github.com/u/r.git"
+    );
+    assert_eq!(
+        authenticated_url("https://github.com/u/r.git", "pat"),
+        "https://microstep:pat@github.com/u/r.git"
+    );
+    // file/path 远端与空 PAT 语义不变。
+    assert_eq!(authenticated_url("/tmp/remote", "pat"), "/tmp/remote");
+    assert_eq!(authenticated_url("https://x.git", ""), "https://x.git");
 }

@@ -89,10 +89,10 @@ pub struct SyncConfigUpdate {
 /// 应用部分更新（未携带字段不动；branch 空串忽略以保同步分支恒非空）。
 pub fn apply_sync_config_update(cfg: &mut SyncConfig, update: &SyncConfigUpdate) {
     if let Some(url) = &update.remote_url {
-        cfg.remote_url = url.clone();
+        cfg.remote_url = url.trim().to_string();
     }
     if let Some(pat) = &update.pat {
-        cfg.pat = pat.clone();
+        cfg.pat = pat.trim().to_string();
     }
     if let Some(branch) = &update.branch {
         if !branch.trim().is_empty() {
@@ -280,6 +280,11 @@ fn classify_transport(detail: String) -> SyncError {
         SyncError::Auth(detail)
     } else if lower.contains("timeout") || lower.contains("timed out") {
         SyncError::Timeout(detail)
+    } else if lower.contains("uploadpack-advertisement") || lower.contains("dumb protocol") {
+        // 服务器返回了网页而非 git smart-HTTP 响应：私有仓库未认证（404 HTML）或 URL 异常。
+        SyncError::Network(format!(
+            "{detail}；常见原因：私有仓库 PAT 未配置/失效，或 URL 不是标准 git HTTPS 地址（检查大小写与多余字符）"
+        ))
     } else {
         SyncError::Network(detail)
     }
@@ -769,8 +774,9 @@ fn read_events_blob(
 }
 
 /// HTTPS 远端注入 PAT（URL userinfo 形态；file/path 远端不受影响）。
-fn authenticated_url(url: &str, pat: &str) -> String {
-    if pat.is_empty() || !url.starts_with("http") {
+pub fn authenticated_url(url: &str, pat: &str) -> String {
+    // scheme 大小写不敏感：移动键盘自动大写（Https://）不得阻断 PAT 注入。
+    if pat.is_empty() || !url.to_ascii_lowercase().starts_with("http") {
         return url.to_string();
     }
     match url.split_once("://") {

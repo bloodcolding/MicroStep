@@ -17,15 +17,15 @@ export function syncFormHtml() {
     <div class="form-grid">
       <div class="form-field">
         <label for="syncRemoteUrl">${t("sync.remoteLabel")}</label>
-        <input id="syncRemoteUrl" type="text" placeholder="${t("sync.remotePh")}" />
+        <input id="syncRemoteUrl" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="${t("sync.remotePh")}" />
       </div>
       <div class="form-field">
         <label for="syncPat">PAT</label>
-        <input id="syncPat" type="password" placeholder="${t("sync.patPh")}" />
+        <input id="syncPat" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="${t("sync.patPh")}" />
       </div>
       <div class="form-field">
         <label for="syncBranch">${t("sync.branchLabel")}</label>
-        <input id="syncBranch" type="text" placeholder="${t("sync.branchPh")}" />
+        <input id="syncBranch" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="${t("sync.branchPh")}" />
       </div>
       <div class="form-field">
         <label class="filter-toggle" for="syncClearPat">
