@@ -8,10 +8,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{json, Value};
 
-use microstep::app_state::AppState;
-use microstep::data_dir;
-use microstep::store::{Clock, ClockNow, EventStore};
-use microstep::sync::{save_sync_config, SyncConfig, SyncError};
+use microstep_lib::app_state::AppState;
+use microstep_lib::data_dir;
+use microstep_lib::store::{Clock, ClockNow, EventStore};
+use microstep_lib::sync::{save_sync_config, SyncConfig, SyncError};
 
 fn fixed_clock(date: &str) -> Clock {
     let date = date.to_string();

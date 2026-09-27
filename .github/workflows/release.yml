@@ -50,14 +50,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Tauri build（NSIS setup + MSI）
-        run: npx -y "@tauri-apps/cli@${env:TAURI_CLI_VERSION}" build --bundles nsis,msi --ci -- --locked
+      # MSI 的 ProductVersion 不支持非数字 pre-release（WiX 硬约束）：
+      # 预发布号（如 0.2.1-rc1）只出 NSIS，正式版才附 MSI。
+      - name: Tauri build（NSIS；正式版附加 MSI）
+        run: |
+          $ver = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $bundles = if ($ver -match '-') { 'nsis' } else { 'nsis,msi' }
+          Write-Output "version=$ver bundles=$bundles"
+          npx -y "@tauri-apps/cli@${env:TAURI_CLI_VERSION}" build --bundles $bundles --ci -- --locked
 
       - name: SHA256 校验和
         shell: bash
         run: |
           cd src-tauri/target/release/bundle
-          sha256sum nsis/*.exe msi/*.msi > checksums-windows.txt
+          shopt -s nullglob
+          files=(nsis/*.exe msi/*.msi)
+          sha256sum "${files[@]}" > checksums-windows.txt
           cat checksums-windows.txt
 
       - uses: actions/upload-artifact@v4

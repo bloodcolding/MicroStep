@@ -16,7 +16,7 @@ open class BuildTask : DefaultTask() {
 
     @TaskAction
     fun assemble() {
-        val executable = """npm""";
+        val executable = """npx""";
         try {
             runTauriCli(executable)
         } catch (e: Exception) {
@@ -48,7 +48,10 @@ open class BuildTask : DefaultTask() {
         val rootDirRel = rootDirRel ?: throw GradleException("rootDirRel cannot be null")
         val target = target ?: throw GradleException("target cannot be null")
         val release = release ?: throw GradleException("release cannot be null")
-        val args = listOf("run", "--", "tauri", "android", "android-studio-script");
+        // 本仓库零 npm 工程（无根 package.json），npm run 不可用；
+        // npx 直拉钉版本 CLI（版本与 workflow env 单源，缺省兜底 2.11.4）。
+        val cliVersion = System.getenv("TAURI_CLI_VERSION") ?: "2.11.4"
+        val args = listOf("-y", "@tauri-apps/cli@$cliVersion", "android", "android-studio-script");
 
         project.exec {
             workingDir(File(project.projectDir, rootDirRel))

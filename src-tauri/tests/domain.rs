@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-use microstep::domain::{
+use microstep_lib::domain::{
     apply_event, apply_title_bonuses, build_state, canonical_state_json, initial_state, pool_dimensions,
     has_dimension, Event, State,
 };
@@ -62,8 +62,8 @@ fn make_epic_created(epic_id: &str) -> Value {
     })
 }
 
-fn fx(dimension: &str, delta: f64) -> microstep::domain::EffectInput {
-    microstep::domain::EffectInput { dimension: dimension.to_string(), delta }
+fn fx(dimension: &str, delta: f64) -> microstep_lib::domain::EffectInput {
+    microstep_lib::domain::EffectInput { dimension: dimension.to_string(), delta }
 }
 
 fn dim(state: &State, key: &str) -> f64 {

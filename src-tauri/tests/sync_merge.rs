@@ -1,7 +1,7 @@
 //! Union Merge 纯函数单元测试 · TC-U10~U17（add-git-remote-sync spec：
 //! Union Merge 语义；本地序保留 + 远端独有追加 + event_id 去重 + 同 id 冲突拒绝）。
 
-use microstep::sync::{union_merge, SyncError};
+use microstep_lib::sync::{union_merge, SyncError};
 
 /// 最小合法事件行（event_id + 可重放字段）。
 fn ev(id: &str) -> String {

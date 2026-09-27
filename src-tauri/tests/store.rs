@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use serde_json::{json, Value};
 
-use microstep::domain::EffectInput;
-use microstep::store::{Clock, ClockNow, CreateTask, EventStore, StoreError, UpdateTask};
+use microstep_lib::domain::EffectInput;
+use microstep_lib::store::{Clock, ClockNow, CreateTask, EventStore, StoreError, UpdateTask};
 
 struct TempDir(PathBuf);
 

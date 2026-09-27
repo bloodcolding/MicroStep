@@ -5,7 +5,7 @@
 //! - Rust 版重放相同输入，canonical（递归键排序/紧凑分隔符/非 ASCII 不转义）
 //!   对比零差异 = 移植行为等价；资产随仓库常驻，作为后续规则修改的守门测试。
 
-use microstep::domain::{build_state, canonical_state_json, Event};
+use microstep_lib::domain::{build_state, canonical_state_json, Event};
 
 fn replay_asset(asset: &str) -> String {
     let events: Vec<Event> = asset

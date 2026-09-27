@@ -17,10 +17,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
-use microstep::app_state::AppState;
-use microstep::data_dir;
-use microstep::store::EventStore;
-use microstep::sync::{
+use microstep_lib::app_state::AppState;
+use microstep_lib::data_dir;
+use microstep_lib::store::EventStore;
+use microstep_lib::sync::{
     load_sync_config, save_sync_config, SyncConfig, SyncEngine, SyncError, SyncHooks,
     DEFAULT_SYNC_TIMEOUT,
 };

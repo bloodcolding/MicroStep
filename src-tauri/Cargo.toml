@@ -6,8 +6,11 @@ description = "MicroStep 2.0 · Tauri v2 桌面应用（领域核心为 Python �
 default-run = "microstep"
 
 [lib]
-name = "microstep"
+name = "microstep_lib"
 path = "src/lib.rs"
+# 移动端必需：cdylib 出 libmicrostep.so（Android）/ staticlib 出 libapp.a（iOS），
+# rlib 供桌面 bin 链接（tauri 移动模板标准三件套）。
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
 name = "microstep"

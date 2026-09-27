@@ -4,7 +4,7 @@
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use microstep::sync::{
+use microstep_lib::sync::{
     apply_sync_config_update, load_sync_config, mask_pat, save_sync_config, SyncConfig,
     SyncConfigUpdate,
 };
