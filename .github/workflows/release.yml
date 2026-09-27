@@ -36,7 +36,6 @@ jobs:
   windows:
     name: Windows x64（NSIS + MSI）
     needs: guard
-    if: ${{ false }} # iOS 调通后恢复（TC-R01 全量五平台在正式 tag 重验）
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -81,7 +80,6 @@ jobs:
   macos:
     name: macOS universal（DMG）
     needs: guard
-    if: ${{ false }} # iOS 调通后恢复
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -119,7 +117,6 @@ jobs:
   linux:
     name: Linux（deb + rpm + AppImage）
     needs: guard
-    if: ${{ false }} # iOS 调通后恢复
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
@@ -162,7 +159,6 @@ jobs:
   android:
     name: Android（aarch64 + x86_64 签名 APK）
     needs: guard
-    if: ${{ false }} # iOS 调通后恢复
     runs-on: ubuntu-latest
     env:
       NDK_VERSION: 27.1.12297006
@@ -278,7 +274,7 @@ jobs:
             src-tauri/gen/android/app/build/outputs/apk/checksums-android.txt
 
   ios:
-    name: iOS（未签名 ipa，debugging 导出）
+    name: iOS（未签名 ipa，--no-sign 构建）
     needs: guard
     runs-on: macos-latest
     steps:
@@ -309,9 +305,13 @@ jobs:
         run: |
           npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios build --ci --no-sign
 
-      - name: SHA256 校验和
+      - name: 重命名版本号 + SHA256 校验和
         run: |
-          cd src-tauri/gen/apple/build/ios/iphoneos
+          ver=$(jq -r .version src-tauri/tauri.conf.json)
+          cd src-tauri/gen/apple/build/arm64
+          ipa=$(ls *.ipa | head -n 1)
+          [ -n "$ipa" ] || { echo "no ipa found in $(pwd)"; ls -la; exit 1; }
+          mv "$ipa" "MicroStep_${ver}_unsigned.ipa"
           shasum -a 256 *.ipa > checksums-ios.txt
           cat checksums-ios.txt
 
@@ -320,8 +320,8 @@ jobs:
           name: ios-artifacts
           if-no-files-found: error
           path: |
-            src-tauri/gen/apple/build/ios/iphoneos/*.ipa
-            src-tauri/gen/apple/build/ios/iphoneos/checksums-ios.txt
+            src-tauri/gen/apple/build/arm64/*.ipa
+            src-tauri/gen/apple/build/arm64/checksums-ios.txt
 
   release:
     name: Draft Release 聚合（人工确认后发布）
@@ -349,7 +349,7 @@ jobs:
             - macOS universal：单 `.dmg`（Intel + Apple Silicon）
             - Linux：`.deb` + `.rpm` + `.AppImage`
             - Android：aarch64 / x86_64 双 ABI **已签名** release APK
-            - iOS：`debugging` 导出的**未签名** `.ipa`
+            - iOS：`--no-sign` 构建的**未签名** `.ipa`
 
             各 `checksums-*.txt` 为对应产物 SHA256，下载后请本地校验。
 
