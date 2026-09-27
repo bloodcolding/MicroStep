@@ -10,7 +10,7 @@
 - **日期**: 2026-09-26
 - **健康度**: 🟢 **CI 双绿实证（fd4a1ff）+ workflow 审计 15/15**：Linux 全量回归 + android-check（vendored openssl / ADR-005 实测通过）；gen/{android,apple} 已由 mobile-gen 生成回传入库（TC-C12 转绿，tasks 2.2 完成）；本地 cargo test 122/122、build 零警告、validate --strict 通过；无 git 身份环境已本地复现验证（隔离 HOME 下 sync_engine 19/19，ADR-006）
 - **阶段**: **Change 5（add-cicd-multiplatform）Step 4 全链路落地**——实现 + CI 双绿 + gen 工程入库 + gradle release 签名配置（keystore.properties 双密码口径）→ 剩 tag 冒烟（TC-V02/V03 + TC-R01~R08）
-- **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
+- **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 

@@ -75,7 +75,7 @@ frontend/                   原生 JS 单页应用（17 个 ES modules，无构�
 
 - **依赖白名单**：Rust 侧依赖由 `Cargo.lock` 锁定（tauri/serde/chrono/tokio 等，ADR-002）。引入任何新依赖（含传递依赖）必须先征得用户同意并追加 ADR；前端保持零构建、零 npm 依赖。
 - **事件不可变**：绝不改写或删除事件流中的行；"删除" = 追加 `deleted` 标记事件（tombstone）；Task 只是事件流的投影，删改 Task 不回写历史事件。修改业务规则 = 修改 `domain.rs` 的 Reducer，重放同一事件流即完成规则升级。
-- **真实数据保护**：AppData 下的 `events.jsonl` 是用户真实数据，禁止手工改写做实验；自动化验证一律走 `cargo test`（tempdir 隔离）。仓库内 `data/events.jsonl` 是 Python 时代的历史存档，应用已不读它，仅作 Git 历史保留。
+- **真实数据保护**：AppData 下的 `events.jsonl` 是用户真实数据，禁止手工改写做实验；自动化验证一律走 `cargo test`（tempdir 隔离）。仓库内 `data/events.jsonl`（Python 时代真实数据存档）已按 ADR-007 开源隐私清理删除，Git 历史同步重写。
 - **维度白名单**：`san, physical, professional, knowledge, expression, kindness, charm`。**不存在** willpower / EXP / 等级体系 —— 测试断言其不存在，禁止重新引入。
 - **数值规则**：SAN 是日槽（clamp 0–100，每日从 100 重置，扣减超过当前 SAN 时后端拒绝结算）；其余六维为 pool（clamp ≥ 0）。称号加成按 `1 + title_bonus_percent / 100` 结算，最多装备 3 个。
 - **IPC 参数键 camelCase**：Tauri v2 命令参数键为 camelCase（`task_id` → `taskId`），`api.js` 已做统一转换；新增 command 或改参数时勿破坏此约定（冒烟曾在此翻车）。

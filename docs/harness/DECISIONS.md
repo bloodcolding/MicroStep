@@ -68,6 +68,14 @@
 
 ---
 
+## ADR-007 · 开源前隐私清理（MIT + 历史重写）
+
+- **日期**: 2026-09-27
+- **状态**: Accepted
+- **背景**: 仓库准备由私有转为公开。全历史审计（工作树 + 全部 blob 扫描）确认无密钥/密码/token 泄漏，但存在两类个人信息：全部提交的作者/提交者邮箱为个人 Gmail；`data/events.jsonl` 与 golden_real 资产含真实使用数据（三个日常习惯类任务与一个创作目标类里程碑的具体标题与描述）。
+- **决策**: ① 添加 MIT LICENSE（此前无许可证，默认保留所有权利，不构成开源授权）；② Git 全历史重写，作者/提交者邮箱统一改为 GitHub noreply 地址，远端 force push、tag 全部重打；③ `data/events.jsonl` 自工作树与全部历史删除；④ golden_real 事件流与状态快照中的个人信息替换为中性示例文案（保持事件类型/数量/日期/数值不动，等价性由 TC-I23 golden replay 守护，序列化对齐 Rust canonical：键排序 + 紧分隔符）；⑤ 根 `.gitignore` 新增 `keystore.properties` / `*.jks` / `*.keystore` / `*.p12` 防误提交。ADR-001 中"data/events.jsonl 路径不变、仍纳入 Git 跟踪"的约定自本 ADR 起取代。
+- **影响**: 全部 commit hash 变化（本地 H:\ 主仓库与远端需重新对齐）；被清除文件的历史版本无法直接 checkout 构建（属预期）；Golden 基准的语义覆盖不受影响（仅自由文本字段被替换）。
+
 ## 格式约定
 
 ```markdown

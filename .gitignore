@@ -10,3 +10,9 @@ graphify-out/
 .playwright-mcp/
 src-tauri/target/
 src-tauri/gen/schemas/
+
+# Android release 签名材料（CI 走 Secrets 注入，严禁入库）
+keystore.properties
+*.jks
+*.keystore
+*.p12
