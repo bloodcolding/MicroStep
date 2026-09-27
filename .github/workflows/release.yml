@@ -51,7 +51,7 @@ jobs:
           node-version: 22
 
       - name: Tauri build（NSIS setup + MSI）
-        run: npx -y "@tauri-apps/cli@${env:TAURI_CLI_VERSION}" build --manifest-path src-tauri/Cargo.toml --bundles nsis,msi --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${env:TAURI_CLI_VERSION}" build --bundles nsis,msi --ci -- --locked
 
       - name: SHA256 校验和
         shell: bash
@@ -90,7 +90,7 @@ jobs:
           node-version: 22
 
       - name: Tauri build（universal 单 dmg 双架构）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" build --manifest-path src-tauri/Cargo.toml --target universal-apple-darwin --bundles dmg --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" build --target universal-apple-darwin --bundles dmg --ci -- --locked
 
       - name: SHA256 校验和
         run: |
@@ -130,7 +130,7 @@ jobs:
 
       # ubuntu-22.04 退役时回退 ubuntu-latest（glibc 兼容性记录于 design D3）。
       - name: Tauri build（deb/rpm/AppImage）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" build --manifest-path src-tauri/Cargo.toml --bundles deb,rpm,appimage --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" build --bundles deb,rpm,appimage --ci -- --locked
 
       - name: SHA256 校验和
         run: |
@@ -241,7 +241,7 @@ jobs:
           } > keystore.properties
 
       - name: Tauri android build（双 ABI release APK）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android build --manifest-path src-tauri/Cargo.toml --apk --target aarch64,x86_64 --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" android build --apk --target aarch64,x86_64 --ci -- --locked
 
       - name: 验证 APK 签名（apksigner）
         run: |
@@ -288,7 +288,7 @@ jobs:
       # debugging 导出 = 未签名 ipa：零 Apple 账号/证书依赖；
       # 用户侧经爱思助手 / Sideloadly 免费 Apple ID 自签（7 天时效，README 有指引）。
       - name: Tauri ios build（debugging 导出）
-        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios build --manifest-path src-tauri/Cargo.toml --export-method debugging --ci -- --locked
+        run: npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios build --export-method debugging --ci -- --locked
 
       - name: SHA256 校验和
         run: |
