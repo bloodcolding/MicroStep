@@ -1,6 +1,6 @@
 [package]
 name = "microstep"
-version = "0.2.0"
+version = "0.2.1-rc1"
 edition = "2021"
 description = "MicroStep 2.0 · Tauri v2 桌面应用（领域核心为 Python 版行为等价移植）"
 default-run = "microstep"
