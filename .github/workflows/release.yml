@@ -304,11 +304,14 @@ jobs:
       - name: xcodebuild 未签名 .app + 手工打 ipa
         run: |
           cd src-tauri/gen/apple
+          # xcodegen 生成的配置名是小写 release/；大写 Release 在工程中不存在时
+          # xcodebuild 会静默回落 defaultConfigurationName=debug，触发 dev-server
+          # addr 文件 panic。必须保持小写。
           xcodebuild -workspace microstep.xcodeproj/project.xcworkspace \
-            -scheme microstep_iOS -configuration Release -sdk iphoneos \
+            -scheme microstep_iOS -configuration release -sdk iphoneos \
             -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           ver=$(jq -r .version ../../tauri.conf.json)
-          app="build/Build/Products/Release-iphoneos/MicroStep.app"
+          app="build/Build/Products/release-iphoneos/MicroStep.app"
           out="build/ios/iphoneos"
           mkdir -p "$out/Payload"
           cp -R "$app" "$out/Payload/"
