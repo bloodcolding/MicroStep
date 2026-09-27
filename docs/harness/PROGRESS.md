@@ -7,14 +7,15 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-26
-- **健康度**: 🟢 **CI 双绿实证（fd4a1ff）+ workflow 审计 15/15**：Linux 全量回归 + android-check（vendored openssl / ADR-005 实测通过）；gen/{android,apple} 已由 mobile-gen 生成回传入库（TC-C12 转绿，tasks 2.2 完成）；本地 cargo test 122/122、build 零警告、validate --strict 通过；无 git 身份环境已本地复现验证（隔离 HOME 下 sync_engine 19/19，ADR-006）
-- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 全链路落地**——实现 + CI 双绿 + gen 工程入库 + gradle release 签名配置（keystore.properties 双密码口径）→ 剩 tag 冒烟（TC-V02/V03 + TC-R01~R08）
+- **日期**: 2026-09-27
+- **健康度**: 🟢 **v0.2.1-rc2 五平台 Release 全绿**（run #16：guard + Windows/macOS/Linux/Android/iOS + Draft Release 聚合）；本地 cargo test 124/124、cargo build 零警告、validate --strict 通过；rc2 带移动端同步加固（scheme 大小写不敏感 + URL/PAT trim + 移动输入框禁自动大写）
+- **阶段**: **Change 5（add-cicd-multiplatform）rc2 发布完成**——Android 真机复测私有仓库同步（重点是 rc1 键盘自动大写致 PAT 不注入的回归）+ 产物冒烟收口，通过后等用户 `ARCHIVE`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **tag 冒烟（TC-V02/V03 + TC-R01~R08）**: ① 用户配 Android 四项 Secrets（KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）→ ② 负向：打不匹配 tag `v0.0.0-smoke` 验证守卫 fail-fast 后删掉 → ③ bump `0.2.1-rc1`（tauri.conf.json + Cargo.toml + Cargo.lock 三处一致）→ tag `v0.2.1-rc1` → 五类产物 + SHA256 + draft Release → Windows 本机安装 + Android 真机 + iOS 26.6 爱思自签
+1. **rc2 真机回归（最高优先）**: 用户先作废已在聊天暴露的旧 PAT 并换新 → 安装 `v0.2.1-rc2` Android APK → 私有仓库 `OhMyData` 配置新 PAT 同步；若仍失败，按 rc2 新增提示区分 PAT/URL 与手机网络劫持，并做全局 VPN 对照
+2. **产物冒烟（TC-R01~R08 收口）**: 下载 rc2 五类产物 + 校验 SHA256；Windows 本机安装、Android 真机、iOS 爱思自签各至少一轮
 3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
 4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 5. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
