@@ -7,22 +7,27 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-27
-- **健康度**: 🟢 **v0.2.1-rc2 五平台 Release 全绿**（run #16：guard + Windows/macOS/Linux/Android/iOS + Draft Release 聚合）；本地 cargo test 124/124、cargo build 零警告、validate --strict 通过；rc2 带移动端同步加固（scheme 大小写不敏感 + URL/PAT trim + 移动输入框禁自动大写）
-- **阶段**: **Change 5（add-cicd-multiplatform）rc2 发布完成**——Android 真机复测私有仓库同步（重点是 rc1 键盘自动大写致 PAT 不注入的回归）+ 产物冒烟收口，通过后等用户 `ARCHIVE`
+- **日期**: 2026-09-28
+- **健康度**: 🟡 **v0.2.1-rc2 五平台 Release 全绿，但 MuMu Android 同步仍失败**——本地 rc2 发布前 cargo test 124/124、build 零警告、validate --strict 通过；rc2 已实测安装（versionName 0.2.1-rc2，INTERNET permission granted），模拟器 shell `curl` 访问 GitHub public smart HTTP 返回 200、OhMyData 未认证返回 401，但 App 内 gix/reqwest 同步仍报 dumb protocol / IO error
+- **阶段**: **Change 5（add-cicd-multiplatform）rc2 发布完成，Android 同步排障中**——已排除 APK 版本错误、URL 大小写、Android INTERNET 权限、模拟器系统级 GitHub 不可达；下一步区分「PAT/私有仓库 HTTP 响应」与「App 内 gix/reqwest 网络栈差异」，通过后等用户 `ARCHIVE`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **rc2 真机回归（最高优先）**: 用户先作废已在聊天暴露的旧 PAT 并换新 → 安装 `v0.2.1-rc2` Android APK → 私有仓库 `OhMyData` 配置新 PAT 同步；若仍失败，按 rc2 新增提示区分 PAT/URL 与手机网络劫持，并做全局 VPN 对照
-2. **产物冒烟（TC-R01~R08 收口）**: 下载 rc2 五类产物 + 校验 SHA256；Windows 本机安装、Android 真机、iOS 爱思自签各至少一轮
+1. **Android 同步排障（最高优先）**: ① 输出/保存带 error-chain 的诊断版本，避免 gix 顶层 `An IO error occurred...` 遮蔽 401/TLS/DNS 根因；② 用 MuMu 分别测试 public 仓库匿名 fetch、public 仓库带 PAT fetch、OhMyData 带新 PAT fetch；③ 若仅 App 内失败而 shell curl 成功，重点排查 gix `reqwest + rustls` 在 Android/ARM 转译环境的 DNS/IPv6/TLS 行为；④ 保留全局 VPN 对照
+2. **产物冒烟（TC-R01~R08 收口）**: Android 同步修复后再下载最终五类产物 + 校验 SHA256；Windows 本机安装、Android 真机、iOS 爱思自签各至少一轮
 3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
 4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 5. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
 
 ## Suspended Tasks（暂存任务区）
 
-_（无。任务切换时将未完成工作记入此处，向用户确认后切换。）_
+### 2026-09-28 · MuMu rc2 同步排障（进行中，用户下班暂停）
+
+- **已证实**：MuMu 安装包为 `0.2.1-rc2`；`android.permission.INTERNET` 已授予；模拟器 shell `curl` 能直连 GitHub public smart HTTP（200 + advertisement）且 OhMyData 未认证为 401；App 同步时可见到 `20.205.243.166:443` 的 TCP 连接尝试；用户已按指引更换 PAT。
+- **仍未收口**：App 内同步最终仍是 `Didn't find application/x-git-upload-pack-advertisement...`（也曾出现 `An IO error occurred when talking to the server`），说明错误链被 gix 顶层文案遮蔽，尚未拿到 HTTP status / DNS / TLS 根因。
+- **注意**：尝试用 UI 自动化临时切到 public 仓库时，MuMu 焦点在 MicroStep / Edge / SiYuan 间跳动，配置是否成功保存不确定；不要据此判定存在“配置保存失败”缺陷。下次先做可观测诊断包，再改用户配置。
+- **安全提醒**：曾泄露到聊天的旧 PAT 必须保持作废状态；后续任何日志/截图不得包含新 PAT。
 
 ## 归档区（结项总结）
 
