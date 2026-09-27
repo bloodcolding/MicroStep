@@ -297,26 +297,17 @@ jobs:
         with:
           node-version: 22
 
-      # 零证书导出：IDEDistribution（-exportArchive）强制要求 team（哪怕
+      # 签名导出：IDEDistribution（xcodebuild -exportArchive）强制要求 team（哪怕
       # method=debugging 也报 No Team Found in Archive），无 Apple 账号走不通
-      # → 直接 xcodebuild 出未签名 .app，再手工打 Payload zip（未签名 ipa 的
-      # 本质）；用户侧经爱思助手 / Sideloadly 免费 Apple ID 自签（7 天时效）。
-      - name: xcodebuild 未签名 .app + 手工打 ipa
+      # → 官方 --no-sign 口子：archive 到 xcodeArchives + skip_codesign，
+      # CLI 直接 zip Payload 成未签名 ipa（tauri-cli 2.11.4 源码 build.rs 确认）。
+      # 注意：不能绕过 tauri CLI 裸跑 xcodebuild——Build Rust Code 脚本阶段会经
+      # localhost WebSocket RPC 回连 CLI 父进程取构建参数（读 <identifier>-server-addr
+      # 文件），无父进程直接 panic。产物在 src-tauri/gen/apple/build/arm64/。
+      # 用户侧经爱思助手 / Sideloadly 免费 Apple ID 自签（7 天有效期）。
+      - name: tauri iOS 未签名 ipa（--no-sign 官方支持）
         run: |
-          cd src-tauri/gen/apple
-          # xcodegen 生成的配置名是小写 release/；大写 Release 在工程中不存在时
-          # xcodebuild 会静默回落 defaultConfigurationName=debug，触发 dev-server
-          # addr 文件 panic。必须保持小写。
-          xcodebuild -workspace microstep.xcodeproj/project.xcworkspace \
-            -scheme microstep_iOS -configuration release -sdk iphoneos \
-            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
-          ver=$(jq -r .version ../../tauri.conf.json)
-          app="build/Build/Products/release-iphoneos/MicroStep.app"
-          out="build/ios/iphoneos"
-          mkdir -p "$out/Payload"
-          cp -R "$app" "$out/Payload/"
-          (cd "$out" && zip -qry "Microstep_${ver}_unsigned.ipa" Payload)
-          rm -rf "$out/Payload"
+          npx -y "@tauri-apps/cli@${TAURI_CLI_VERSION}" ios build --ci --no-sign
 
       - name: SHA256 校验和
         run: |
