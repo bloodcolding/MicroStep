@@ -1,0 +1,8 @@
+# Android/gradle 构建产物（工程源码已入库，CI 运行时零生成）
+/.gradle/
+/build/
+/app/build/
+/gradle/buildBuildCache/
+local.properties
+*.iml
+.idea/

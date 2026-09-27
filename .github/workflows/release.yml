@@ -235,6 +235,7 @@ jobs:
           cd src-tauri/gen/android
           {
             echo "keyAlias=${ANDROID_KEY_ALIAS}"
+            echo "storePassword=${ANDROID_KEYSTORE_PASSWORD}"
             echo "password=${ANDROID_KEY_PASSWORD}"
             echo "storeFile=${RUNNER_TEMP}/release.keystore"
           } > keystore.properties

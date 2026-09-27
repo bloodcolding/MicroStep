@@ -14,7 +14,7 @@
 ## 2. Phase 2 · 移动端
 
 - [x] 2.1 `src-tauri/src/lib.rs`：single-instance 插件挂载加 `#[cfg(desktop)]` 守卫（红：TC-S01 失败 + 本机 check 因 NDK 缺失先败；绿：守卫后 cargo test 121/121 通过，桌面行为零变化；权威移动编译绿在 CI）
-- [ ] 2.2 `tauri android init` + `tauri ios init`；`src-tauri/gen/{android,apple}` 入库（本机无 NDK/Xcode → 经 `mobile-gen.yml` 手动触发生成回传），核对 `.gitignore` 与生成物清单（design D9）
+- [x] 2.2 `tauri android init` + `tauri ios init`；`src-tauri/gen/{android,apple}` 入库（本机无 NDK/Xcode → 经 `mobile-gen.yml` 手动触发生成回传），核对 `.gitignore` 与生成物清单（design D9）
 - [ ] 2.3 移动图标集：`tauri icon` 产物接入 Android mipmap / iOS Assets
 - [x] 2.4 release.yml 增 Android 作业：JDK 17 + Android SDK/NDK + `ANDROID_HOME`/`NDK_HOME`/`JAVA_HOME`；`--apk` 出 aarch64 + x86_64；keystore 四项 Secrets 注入签名（官方 keystore.properties 路径 + Secrets 缺失显式失败 + apksigner 验签，design D4）
 - [x] 2.5 release.yml 增 iOS 作业：`macos-latest` + `tauri ios build --export-method debugging` 出未签名 ipa（零证书依赖）

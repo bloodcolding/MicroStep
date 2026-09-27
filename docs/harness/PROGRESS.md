@@ -8,14 +8,13 @@
 ## 当前状态
 
 - **日期**: 2026-09-26
-- **健康度**: 🟢 **CI 双绿实证（fd4a1ff）**：Linux 全量回归 + android-check（vendored openssl / ADR-005 实测通过，openssl 错误类闭环）；本地 cargo test 122/122、build 零警告、validate --strict 通过、workflow 静态审计 14/15（唯一待办 TC-C12 = gen 工程待 CI 生成回传）；无 git 身份环境已本地复现验证（隔离 HOME 下 sync_engine 19/19，ADR-006）
-- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 实现 + CI 侧闭环完成（Linux/Android 双绿）**——待 mobile-gen 生成 gen/{android,apple} 回传入库（TC-C12 转绿）→ tag 冒烟
+- **健康度**: 🟢 **CI 双绿实证（fd4a1ff）+ workflow 审计 15/15**：Linux 全量回归 + android-check（vendored openssl / ADR-005 实测通过）；gen/{android,apple} 已由 mobile-gen 生成回传入库（TC-C12 转绿，tasks 2.2 完成）；本地 cargo test 122/122、build 零警告、validate --strict 通过；无 git 身份环境已本地复现验证（隔离 HOME 下 sync_engine 19/19，ADR-006）
+- **阶段**: **Change 5（add-cicd-multiplatform）Step 4 全链路落地**——实现 + CI 双绿 + gen 工程入库 + gradle release 签名配置（keystore.properties 双密码口径）→ 剩 tag 冒烟（TC-V02/V03 + TC-R01~R08）
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 为 Python 时代历史存档，应用已不读，仅 Git 历史保留
 
 ## Next Steps
 
-1. **gen 工程回传（等用户触发）**: ① Actions 手动触发 `mobile-gen.yml`（Run workflow，master@fd4a1ff）→ ② 下载 `gen-android` / `gen-apple` artifacts 给 Agent → ③ 解包到 `src-tauri/gen/` + 补 gradle release 签名配置（keystore.properties 引用，README/官方口径）→ 审计 15/15 → commit/push（TC-C12 转绿）
-2. **tag 冒烟（TC-V02/V03 + TC-R01~R08）**: 先负向（不匹配 tag 守卫 fail-fast）→ bump `0.2.1-rc1` 三处一致 → tag `v0.2.1-rc1` → 五类产物 + SHA256 + draft Release + Windows 本机安装 + Android 真机 + iOS 26.6 爱思自签；用户先配好 Android 四项 Secrets
+1. **tag 冒烟（TC-V02/V03 + TC-R01~R08）**: ① 用户配 Android 四项 Secrets（KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）→ ② 负向：打不匹配 tag `v0.0.0-smoke` 验证守卫 fail-fast 后删掉 → ③ bump `0.2.1-rc1`（tauri.conf.json + Cargo.toml + Cargo.lock 三处一致）→ tag `v0.2.1-rc1` → 五类产物 + SHA256 + draft Release → Windows 本机安装 + Android 真机 + iOS 26.6 爱思自签
 3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
 4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 5. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）

@@ -1,0 +1,6 @@
+# Xcode 构建产物（工程源码已入库，CI 运行时零生成）
+/build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+Pods/
