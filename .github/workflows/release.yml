@@ -36,6 +36,7 @@ jobs:
   windows:
     name: Windows x64（NSIS + MSI）
     needs: guard
+    if: ${{ false }} # iOS 调通后恢复（TC-R01 全量五平台在正式 tag 重验）
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -80,6 +81,7 @@ jobs:
   macos:
     name: macOS universal（DMG）
     needs: guard
+    if: ${{ false }} # iOS 调通后恢复
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -117,6 +119,7 @@ jobs:
   linux:
     name: Linux（deb + rpm + AppImage）
     needs: guard
+    if: ${{ false }} # iOS 调通后恢复
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
@@ -159,6 +162,7 @@ jobs:
   android:
     name: Android（aarch64 + x86_64 签名 APK）
     needs: guard
+    if: ${{ false }} # iOS 调通后恢复
     runs-on: ubuntu-latest
     env:
       NDK_VERSION: 27.1.12297006
