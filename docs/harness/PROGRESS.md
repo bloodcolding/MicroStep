@@ -8,32 +8,30 @@
 ## 当前状态
 
 - **日期**: 2026-09-28
-- **健康度**: 🟢 **rc3 Redmi 真机双向同步成功（ADR-008 修复闭环）**——CI 五平台全绿 → 真机 adb 升级 rc3 → logcat 确认 `rustls-platform-verifier initialized`、rc2 panic 现场消失 → 手动同步成功（fetch+merge+push 全链路，git2/OpenSSL push 亦实测通过）；桌面 127/127 零警告
-- **阶段**: **Change 5（add-cicd-multiplatform）Android 同步排障收官待归档**——排障过程：MuMu 排除法（版本/权限/大小写/连通性）→ 专家四假设代码核验 → 源码考古定位 reqwest 0.13 特性矩阵（rustls 唯一验证器 = platform-verifier，Android 需 JNI 初始化）→ 真机 logcat 铁证 → 四层修复 → 实测通过；等用户 `ARCHIVE`
+- **健康度**: 🟢 **Change 5（add-cicd-multiplatform）已归档结项**——rc3 Redmi 真机双向同步成功（fetch+merge+push 全链路）后执行 `openspec archive`；主规格 9 个全部 `validate --strict` 通过（app-shell 更新 2 条、ci-cd 新建 6 条）；桌面 127/127 零警告
+- **阶段**: **结项完成，进入日常使用期**——五平台 CI/Release 矩阵 + 移动端同步收官；排障方法论沉淀博文 `docs/blog/2026-09-28-android-rustls.md`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **Change 5 归档（等用户 `ARCHIVE`）**: Android 同步已在 Redmi 真机闭环（fetch+merge+push 全绿）；可选补充 MuMu 对照一轮后执行 `openspec archive add-cicd-multiplatform`
-2. **产物冒烟（TC-R01~R08 收口）**: 下载 v0.2.1-rc3（或归档后正式版）五类产物 + 校验 SHA256；Windows 本机安装、Android 真机（已装 rc3 ✓）、iOS 爱思自签各至少一轮
-3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
-4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-5. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
+1. **产物冒烟（TC-R01~R08 收口）**: 下载 v0.2.1-rc3（或转正式版）五类产物 + 校验 SHA256；Windows 本机安装、Android 真机（已装 rc3 ✓）、iOS 爱思自签各至少一轮
+2. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏
+3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
+4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
 
 ## Suspended Tasks（暂存任务区）
 
-### 2026-09-28 · MuMu rc2 同步排障（已于当日 rc3 真机闭环，待归档清理）
-
-- **已证实**：MuMu 安装包为 `0.2.1-rc2`；`android.permission.INTERNET` 已授予；模拟器 shell `curl` 能直连 GitHub public smart HTTP（200 + advertisement）且 OhMyData 未认证为 401；App 同步时可见到 `20.205.243.166:443` 的 TCP 连接尝试；用户已按指引更换 PAT。
-- **仍未收口**：App 内同步最终仍是 `Didn't find application/x-git-upload-pack-advertisement...`（也曾出现 `An IO error occurred when talking to the server`），说明错误链被 gix 顶层文案遮蔽，尚未拿到 HTTP status / DNS / TLS 根因。
-- **注意**：尝试用 UI 自动化临时切到 public 仓库时，MuMu 焦点在 MicroStep / Edge / SiYuan 间跳动，配置是否成功保存不确定；不要据此判定存在“配置保存失败”缺陷。下次先做可观测诊断包，再改用户配置。
-- **安全提醒**：曾泄露到聊天的旧 PAT 必须保持作废状态；后续任何日志/截图不得包含新 PAT。
-
-**2026-09-28 下午进展（rc3 修复已落地）**：专家参考意见触发代码级复查，根因锁定并修复（ADR-008）——① reqwest 0.13 已移除 webpki/native-roots 特性，`rustls` 特性唯一验证器 = rustls-platform-verifier；② 其 Android 后端必须 JNI 初始化 + Kotlin 组件，Tauri 2.11.6 不代做 → 首次 HTTPS 校验 panic → "IO error"（症状全吻合：TCP 连上即断、shell curl 正常、桌面全绿）；③ 修复 = Android 入口手写展开插 shim 初始化（jni 0.21→0.22 裸指针桥接）+ Gradle 接入 crate 自带 maven AAR + R8 keep；④ 错误文案升级 error chain + PAT 脱敏（单测 3 例）；⑤ host 全量 127/127 零警告，Cargo.lock 仅加两条直依赖边（零新增 crate）。待办：CI android-check → MuMu 实测。
-
-**2026-09-28 晚间收官（Redmi 真机闭环）**：push master → CI（含 android-check）全绿；tag `v0.2.1-rc3` → release 五平台全绿；本机 adb（platform-tools）连 Redmi Turbo 3（Android 16）——rc2 冷启动 logcat 当场抓到 `Expect rustls-platform-verifier to be initialized` panic 现场（根因铁证）；`adb install -r` 升级 rc3 → 冷启动 logcat 显示 `AGENT-DEBUG: rustls-platform-verifier initialized` 且 panic 消失 → 手动同步成功（fetch+merge+push 全链路；担心的 git2/vendored-OpenSSL push CA 问题实测不存在）。MuMu 三分支对照未单独复测（真机结论已覆盖核心链路），ARCHIVE 时可作可选补充。
+（空——MuMu rc2 排障已随 Change 5 归档，详见归档区。）
 
 ## 归档区（结项总结）
+
+### 2026-09-28 · add-cicd-multiplatform 结项：五平台 CI/Release 矩阵 + Android 同步收官
+
+- 四步法收官：CI（Linux test/build + aarch64 android-check --locked）与 release（版本守卫 → Win/macOS/Linux/iOS/Android 并行构建 → 签名/校验和 → Draft Release 聚合）双流水线落地；移动工程 `gen/android` / `gen/apple` 随源码入库、CI 零生成。
+- 移动端同步三轮排障收口：rc1 加固（URL/PAT 去空白、scheme 大小写不敏感、禁自动大写）→ rc2 MuMu 排除法（版本/权限/连通性全排除，错误链被 gix 顶层文案遮蔽）→ 专家四假设代码核验 + 源码考古锁定根因：reqwest 0.13 特性矩阵单行道（rustls 唯一验证器 = rustls-platform-verifier），其 Android 后端需 JNI 初始化 + Kotlin 组件，Tauri 不代做 → 首次 HTTPS 校验 panic 被吞成 "IO error"（ADR-008）。
+- rc3 四层修复：Android 入口手写展开插 `android_wry_glue` shim（jni 0.21→0.22 裸指针桥接初始化）+ Gradle 经 cargo metadata 接入 crate 自带 maven AAR + R8 keep（防 release minify 重命名 JNI 反射类）+ 同步错误完整 error chain 与 PAT 脱敏；零新增 crate（Cargo.lock 仅两条直依赖边）。
+- 验证闭环：CI android-check 全绿 → tag `v0.2.1-rc3` 五平台 Release 全绿 → Redmi Turbo 3（Android 16）adb 升级实测：rc2 panic 现场当场复现取证 → rc3 `rustls-platform-verifier initialized` + panic 消失 → 手动同步 fetch+merge+push 全链路成功（git2/vendored-OpenSSL push 的 CA 疑虑实测不存在）。
+- 归档落账：`openspec archive` 移动 change 至 `archive/2026-09-28-add-cicd-multiplatform`，主规格 9 个 `validate --strict` 全过（app-shell ~2、ci-cd +6）；排障方法论沉淀博文 `docs/blog/2026-09-28-android-rustls.md`。
 
 ### 2026-09-25 · add-frontend-i18n 结项：前端运行时多语言（zh-CN / en）
 
