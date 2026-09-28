@@ -3171,12 +3171,14 @@ dependencies = [
 
 [[package]]
 name = "microstep"
-version = "0.2.1-rc2"
+version = "0.2.1-rc3"
 dependencies = [
  "chrono",
  "git2",
  "gix",
+ "jni 0.22.4",
  "openssl-sys",
+ "rustls-platform-verifier",
  "serde",
  "serde_json",
  "tauri",

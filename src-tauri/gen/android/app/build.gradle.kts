@@ -1,3 +1,4 @@
+import groovy.json.JsonSlurper
 import java.util.Properties
 
 plugins {
@@ -20,6 +21,31 @@ val keystoreProperties = Properties().apply {
     if (propFile.exists()) {
         propFile.inputStream().use { load(it) }
     }
+}
+
+// rustls-platform-verifier 的 Kotlin 组件（ADR-008）：gix/reqwest 在 Android 的
+// rustls 证书验证经 JNI 调 org.rustls.platformverifier.CertificateVerifier。
+// AAR 随 rustls-platform-verifier-android crate（Cargo.lock 锁 0.1.1）分发，
+// 用 cargo metadata 定位其 maven 目录（crate 官方 README 集成方式）。
+repositories {
+    maven {
+        url = uri(rustlsPlatformVerifierMaven())
+    }
+}
+
+fun rustlsPlatformVerifierMaven(): File {
+    val metadataText = providers.exec {
+        workingDir = File(project.rootDir, "../../")
+        commandLine(
+            "cargo", "metadata", "--format-version", "1",
+            "--filter-platform", "aarch64-linux-android"
+        )
+    }.standardOutput.asText.get()
+    val metadata = JsonSlurper().parseText(metadataText) as Map<*, *>
+    val manifestPath = (metadata["packages"] as List<*>)
+        .first { (it as Map<*, *>)["name"] == "rustls-platform-verifier-android" }
+        .let { (it as Map<*, *>)["manifest_path"] as String }
+    return File(manifestPath).parentFile.resolve("maven")
 }
 
 android {
@@ -78,6 +104,7 @@ rust {
 }
 
 dependencies {
+    implementation("rustls:rustls-platform-verifier:0.1.1")
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")

@@ -36,13 +36,23 @@ fn tc_s01_single_instance_registration_is_desktop_gated() {
     );
 }
 
-/// TC-S02 · 移动入口属性保留：`run()` 仍标注
-/// `#[cfg_attr(mobile, tauri::mobile_entry_point)]`（现状即绿的回归护栏）。
+/// TC-S02 · 移动入口保留：iOS 走 `mobile_entry_point`；Android 因需插入
+/// rustls-platform-verifier 初始化（ADR-008）改为手写展开——run() 标注
+/// iOS 入口属性，且存在 `android_binding!` 的 `_start_app` 展开与
+/// `stop_unwind` 防护（双平台入口缺失即红）。
 #[test]
 fn tc_s02_mobile_entry_point_attr_preserved() {
+    let source = lib_rs();
     assert!(
-        lib_rs()
-            .contains("#[cfg_attr(mobile, tauri::mobile_entry_point)]"),
-        "run() 必须保留 #[cfg_attr(mobile, tauri::mobile_entry_point)] 移动入口"
+        source.contains("#[cfg_attr(target_os = \"ios\", tauri::mobile_entry_point)]"),
+        "run() 必须保留 iOS 的 mobile_entry_point 入口属性"
+    );
+    assert!(
+        source.contains("tauri::android_binding!(com_microstep, app, _start_app,"),
+        "Android 必须保留 android_binding! 入口（ADR-008 TLS 初始化 shim）"
+    );
+    assert!(
+        source.contains("fn stop_unwind<F: FnOnce() -> T, T>(f: F) -> T"),
+        "Android 手写入口必须保留 panic 防护（与 mobile_entry_point 展开一致）"
     );
 }

@@ -76,6 +76,16 @@
 - **决策**: ① 添加 MIT LICENSE（此前无许可证，默认保留所有权利，不构成开源授权）；② Git 全历史重写，作者/提交者邮箱统一改为 GitHub noreply 地址，远端 force push、tag 全部重打；③ `data/events.jsonl` 自工作树与全部历史删除；④ golden_real 事件流与状态快照中的个人信息替换为中性示例文案（保持事件类型/数量/日期/数值不动，等价性由 TC-I23 golden replay 守护，序列化对齐 Rust canonical：键排序 + 紧分隔符）；⑤ 根 `.gitignore` 新增 `keystore.properties` / `*.jks` / `*.keystore` / `*.p12` 防误提交。ADR-001 中"data/events.jsonl 路径不变、仍纳入 Git 跟踪"的约定自本 ADR 起取代。
 - **影响**: 全部 commit hash 变化（本地 H:\ 主仓库与远端需重新对齐）；被清除文件的历史版本无法直接 checkout 构建（属预期）；Golden 基准的语义覆盖不受影响（仅自由文本字段被替换）。
 
+---
+
+## ADR-008 · Android TLS 信任根：rustls-platform-verifier JNI 初始化（官方集成路径）
+
+- **日期**: 2026-09-28
+- **状态**: Accepted
+- **背景**: rc2 MuMu 排障定位到代码级根因：gix fetch → reqwest 0.13（`rustls` 特性；该版本已移除 webpki-roots / native-roots 特性）的唯一证书验证器是 rustls-platform-verifier 0.7。其 Android 后端要求进程内先 JNI 初始化（`android::init_*`）并有 Kotlin 侧 `org.rustls.platformverifier.CertificateVerifier` 组件配合；未初始化时首次 HTTPS 证书校验直接 panic（`expect("Expect rustls-platform-verifier to be initialized")`），被 reqwest/gix 层层包装成不可辨根因的 "An IO error occurred..."（TCP 可连、收到服务端证书即断，与 MuMu 实测完全吻合）。Tauri 2.11.6 核心不做该初始化。桌面（Windows CNG / macOS / Linux rustls-native-certs）不受影响，iOS 走苹果平台验证器亦不需要该初始化。
+- **决策**: 按 crate 官方 Android 集成路径修复：① Android 入口从 `mobile_entry_point` 改为其等价手写展开（tauri-macros 2.6.3），`$wry` 模块替换为 `android_wry_glue` shim，在 wry `android_setup(package, env, looper, activity)` 钩子内经 jni 0.21→0.22 裸指针桥接调用 `rustls_platform_verifier::android::init_with_env`（Activity 即 Context）；② `jni 0.22` 与 `rustls-platform-verifier 0.7` 声明为 Android 目标直依赖——两者均为锁内既有 gix 传递依赖，零新增 crate，ADR-002 白名单不破；③ gen/android app 模块按 crate README 方式经 cargo metadata 定位 rustls-platform-verifier-android 0.1.1 自带的 maven AAR 接入 Gradle，并新增 R8 keep 规则（release `isMinifyEnabled=true` 不得重命名/移除 JNI 按名查找的 Kotlin 类）。附带：同步错误文案升级为完整 error chain（`source()` 逐级拼接）+ URL userinfo 脱敏（`microstep:****@`），根治"错误链被顶层文案遮蔽"的排障盲区。
+- **影响**: Android HTTPS 验证改用系统信任库（尊重用户/VPN 安装的 CA）；Android 入口与 identifier `com.microstep.app` 字面耦合（`com_microstep`/`app` 改名需同步 lib.rs）；git2 push 走 vendored OpenSSL，其 Android 默认 CA 路径问题为独立观察项（fetch 修复后 push 若报证书错误另案决策）。
+
 ## 格式约定
 
 ```markdown

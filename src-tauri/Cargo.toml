@@ -1,6 +1,6 @@
 [package]
 name = "microstep"
-version = "0.2.1-rc2"
+version = "0.2.1-rc3"
 edition = "2021"
 description = "MicroStep 2.0 · Tauri v2 桌面应用（领域核心为 Python 版行为等价移植）"
 default-run = "microstep"
@@ -41,6 +41,14 @@ gix = { version = "0.87.1", default-features = false, features = ["blocking-http
 # （libgit2 走 WinHTTP），Linux 桌面继续用系统 libssl-dev，均不受影响。
 [target.'cfg(any(target_os = "android", target_os = "ios", target_os = "macos"))'.dependencies]
 openssl-sys = { version = "0.9", features = ["vendored"] }
+
+# Android TLS 信任根（ADR-008）：gix→reqwest 0.13 的 rustls 特性唯一验证器是
+# rustls-platform-verifier，其 Android 后端需 JNI 初始化 + Kotlin 组件。
+# 两 crate 均为锁内既有传递依赖（gix 引入），此处仅声明为直依赖以便调用，
+# 不新增任何传递依赖。
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "0.22", default-features = false }
+rustls-platform-verifier = "0.7"
 
 [profile.release]
 strip = true

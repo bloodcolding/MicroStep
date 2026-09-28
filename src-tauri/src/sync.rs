@@ -270,6 +270,7 @@ impl std::fmt::Display for SyncError {
 
 /// 传输层错误文案归类（gix / git2 错误 → 五类信封）。
 fn classify_transport(detail: String) -> SyncError {
+    let detail = scrub_credentials(&detail);
     let lower = detail.to_lowercase();
     if lower.contains("401")
         || lower.contains("403")
@@ -290,9 +291,50 @@ fn classify_transport(detail: String) -> SyncError {
     }
 }
 
+/// 组装完整错误链（err → source → …）：gix/git2 顶层 Display 常吞掉根因
+/// （HTTP status / DNS / TLS），rc2 MuMu 排障时正是被 "An IO error occurred..."
+/// 遮蔽到无法定位（ADR-008 前车之鉴），故统一走整链 + 脱敏。
+fn error_chain(err: &dyn std::error::Error) -> String {
+    let mut chain = err.to_string();
+    let mut source = err.source();
+    while let Some(err) = source {
+        chain.push_str("；原因: ");
+        chain.push_str(&err.to_string());
+        source = err.source();
+    }
+    chain
+}
+
+/// URL userinfo 脱敏：authenticated_url 注入的 `user:PAT@` 不得随错误文案
+/// 进日志 / UI / 截图（含 `microstep:****@` 替换；仅处理含冒号的 userinfo 段）。
+fn scrub_credentials(detail: &str) -> String {
+    let chars: Vec<char> = detail.chars().collect();
+    let mut out = String::with_capacity(detail.len());
+    let mut i = 0;
+    while i < chars.len() {
+        if i + 3 <= chars.len() && chars[i] == ':' && chars[i + 1] == '/' && chars[i + 2] == '/' {
+            out.push_str("://");
+            i += 3;
+            let mut j = i;
+            while j < chars.len() && chars[j] != '@' && chars[j] != '/' && !chars[j].is_whitespace()
+            {
+                j += 1;
+            }
+            if j < chars.len() && chars[j] == '@' && chars[i..j].contains(&':') {
+                out.push_str("microstep:****@");
+                i = j + 1;
+            }
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
 /// push 阶段错误归类：non-fast-forward / fetch first / rejected → 远端并发更新。
 fn classify_push_error(err: git2::Error) -> SyncError {
-    let message = err.message().to_string();
+    let message = error_chain(&err);
     let lower = message.to_lowercase();
     if lower.contains("non-fast-forward") || lower.contains("fetch first") || lower.contains("rejected") {
         SyncError::ConcurrentUpdate(message)
@@ -493,7 +535,7 @@ impl SyncEngine {
             let repo = gix::open(&data_dir).map_err(|err| SyncError::Git(err.to_string()))?;
             let mut remote = repo
                 .remote_at(url.as_str())
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             let tracking_ref = format!("refs/remotes/origin/{branch}");
             let refspec = format!("+refs/heads/{branch}:{tracking_ref}");
             remote
@@ -501,10 +543,10 @@ impl SyncEngine {
                 .map_err(|err| SyncError::Git(err.to_string()))?;
             let connection = remote
                 .connect(gix::remote::Direction::Fetch)
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             let preparation = connection
                 .prepare_fetch(gix::progress::Discard, Default::default())
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             // 空远端 / 远端无任何分支：不执行 receive（其 update_refs 阶段会对
             // 0 refs 的 NoMapping 报错），等价「无远端内容」→ bootstrap 推种子路径。
             if preparation.ref_map().remote_refs.is_empty() {
@@ -513,7 +555,7 @@ impl SyncEngine {
             let interrupt = AtomicBool::new(false);
             preparation
                 .receive(gix::progress::Discard, &interrupt)
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
 
             let repo = gix::open(&data_dir).map_err(|err| SyncError::Git(err.to_string()))?;
             let tip = repo
@@ -544,7 +586,7 @@ impl SyncEngine {
             let repo = gix::open(&data_dir).map_err(|err| SyncError::Git(err.to_string()))?;
             let mut remote = repo
                 .remote_at(url.as_str())
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             // 仅握手取 advertisement：refspec 复用追踪映射，不 receive 即不落任何写。
             remote
                 .replace_refspecs(
@@ -554,10 +596,10 @@ impl SyncEngine {
                 .map_err(|err| SyncError::Git(err.to_string()))?;
             let connection = remote
                 .connect(gix::remote::Direction::Fetch)
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             let preparation = connection
                 .prepare_fetch(gix::progress::Discard, Default::default())
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             let mut tip = None;
             for reference in &preparation.ref_map().remote_refs {
                 if let gix::protocol::handshake::Ref::Direct { full_ref_name, object } = reference {
@@ -582,7 +624,7 @@ impl SyncEngine {
                 .map_err(|err| SyncError::Git(err.to_string()))?;
             let mut remote = repo
                 .remote_anonymous(&url)
-                .map_err(|err| classify_transport(err.to_string()))?;
+                .map_err(|err| classify_transport(error_chain(&err)))?;
             let mut callbacks = git2::RemoteCallbacks::new();
             if !pat.is_empty() {
                 callbacks.credentials(move |_url, user, _| {
@@ -782,5 +824,61 @@ pub fn authenticated_url(url: &str, pat: &str) -> String {
     match url.split_once("://") {
         Some((scheme, rest)) => format!("{scheme}://microstep:{pat}@{rest}"),
         None => url.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scrub_credentials_masks_url_userinfo() {
+        assert_eq!(
+            scrub_credentials(
+                "error sending request for url \
+                 (https://microstep:ghp_secret123@github.com/o/r.git/info/refs)"
+            ),
+            "error sending request for url (https://microstep:****@github.com/o/r.git/info/refs)"
+        );
+    }
+
+    #[test]
+    fn scrub_credentials_keeps_url_without_userinfo() {
+        assert_eq!(
+            scrub_credentials("https://github.com/o/r.git/info/refs"),
+            "https://github.com/o/r.git/info/refs"
+        );
+        // 非 userinfo 的 user:pass 形态（无 @ 收尾）不动
+        assert_eq!(
+            scrub_credentials("path/user:pass here"),
+            "path/user:pass here"
+        );
+    }
+
+    #[derive(Debug)]
+    struct RootError;
+    impl std::fmt::Display for RootError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "root cause")
+        }
+    }
+    impl std::error::Error for RootError {}
+
+    #[derive(Debug)]
+    struct MidError;
+    impl std::fmt::Display for MidError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "mid error")
+        }
+    }
+    impl std::error::Error for MidError {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            Some(&RootError)
+        }
+    }
+
+    #[test]
+    fn error_chain_joins_sources() {
+        assert_eq!(error_chain(&MidError), "mid error；原因: root cause");
     }
 }

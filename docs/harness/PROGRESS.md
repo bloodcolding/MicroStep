@@ -8,13 +8,13 @@
 ## 当前状态
 
 - **日期**: 2026-09-28
-- **健康度**: 🟡 **v0.2.1-rc2 五平台 Release 全绿，但 MuMu Android 同步仍失败**——本地 rc2 发布前 cargo test 124/124、build 零警告、validate --strict 通过；rc2 已实测安装（versionName 0.2.1-rc2，INTERNET permission granted），模拟器 shell `curl` 访问 GitHub public smart HTTP 返回 200、OhMyData 未认证返回 401，但 App 内 gix/reqwest 同步仍报 dumb protocol / IO error
-- **阶段**: **Change 5（add-cicd-multiplatform）rc2 发布完成，Android 同步排障中**——已排除 APK 版本错误、URL 大小写、Android INTERNET 权限、模拟器系统级 GitHub 不可达；下一步区分「PAT/私有仓库 HTTP 响应」与「App 内 gix/reqwest 网络栈差异」，通过后等用户 `ARCHIVE`
+- **健康度**: 🟡 **rc3：Android 同步根因已修复（ADR-008），待 MuMu 实测收口**——代码级定位：reqwest 0.13 rustls 唯一验证器 rustls-platform-verifier 在 Android 需 JNI 初始化，未初始化则首次 HTTPS 证书校验 panic（TCP 可连、收到证书即断，与 rc2 MuMu 实测完全吻合）；rc3 已按 crate 官方路径落地初始化（JNI 桥接 + Kotlin AAR + R8 keep），本地 cargo test 127/127、build 零警告、零新增 crate
+- **阶段**: **Change 5（add-cicd-multiplatform）Android 同步排障：TLS 根因修复落地**——专家参考建议中"TLS/CA 移动端坑"变体命中（形态为 platform-verifier 未初始化而非缺 CA 文件）；遗留验证：CI android-check（本地无 NDK）→ MuMu rc3 实测三分支 → push 阶段若报 OpenSSL 证书错误则另案处理（git2 独立栈）→ 通过后等用户 `ARCHIVE`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **Android 同步排障（最高优先）**: ① 输出/保存带 error-chain 的诊断版本，避免 gix 顶层 `An IO error occurred...` 遮蔽 401/TLS/DNS 根因；② 用 MuMu 分别测试 public 仓库匿名 fetch、public 仓库带 PAT fetch、OhMyData 带新 PAT fetch；③ 若仅 App 内失败而 shell curl 成功，重点排查 gix `reqwest + rustls` 在 Android/ARM 转译环境的 DNS/IPv6/TLS 行为；④ 保留全局 VPN 对照
+1. **Android 同步排障收口（最高优先）**: ① push master 触发 CI android-check（本地无 NDK，JNI 桥接代码由 CI 兜底）；② 构 rc3 APK 在 MuMu 实测三分支：public 仓库匿名 fetch、public 仓库带 PAT fetch、OhMyData 带新 PAT fetch（错误文案已带完整 error chain，PAT 自动脱敏）；③ 若 fetch 通而 push 报 OpenSSL 证书错误 → git2 vendored OpenSSL 的 Android CA 路径问题另案决策；④ 保留全局 VPN 对照
 2. **产物冒烟（TC-R01~R08 收口）**: Android 同步修复后再下载最终五类产物 + 校验 SHA256；Windows 本机安装、Android 真机、iOS 爱思自签各至少一轮
 3. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏；add-cicd-multiplatform 落地后评估优先级
 4. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
@@ -28,6 +28,8 @@
 - **仍未收口**：App 内同步最终仍是 `Didn't find application/x-git-upload-pack-advertisement...`（也曾出现 `An IO error occurred when talking to the server`），说明错误链被 gix 顶层文案遮蔽，尚未拿到 HTTP status / DNS / TLS 根因。
 - **注意**：尝试用 UI 自动化临时切到 public 仓库时，MuMu 焦点在 MicroStep / Edge / SiYuan 间跳动，配置是否成功保存不确定；不要据此判定存在“配置保存失败”缺陷。下次先做可观测诊断包，再改用户配置。
 - **安全提醒**：曾泄露到聊天的旧 PAT 必须保持作废状态；后续任何日志/截图不得包含新 PAT。
+
+**2026-09-28 下午进展（rc3 修复已落地）**：专家参考意见触发代码级复查，根因锁定并修复（ADR-008）——① reqwest 0.13 已移除 webpki/native-roots 特性，`rustls` 特性唯一验证器 = rustls-platform-verifier；② 其 Android 后端必须 JNI 初始化 + Kotlin 组件，Tauri 2.11.6 不代做 → 首次 HTTPS 校验 panic → "IO error"（症状全吻合：TCP 连上即断、shell curl 正常、桌面全绿）；③ 修复 = Android 入口手写展开插 shim 初始化（jni 0.21→0.22 裸指针桥接）+ Gradle 接入 crate 自带 maven AAR + R8 keep；④ 错误文案升级 error chain + PAT 脱敏（单测 3 例）；⑤ host 全量 127/127 零警告，Cargo.lock 仅加两条直依赖边（零新增 crate）。待办：CI android-check → MuMu 实测。
 
 ## 归档区（结项总结）
 
