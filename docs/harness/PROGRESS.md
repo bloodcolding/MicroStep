@@ -7,15 +7,15 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-28
-- **健康度**: 🟢 **Change 5（add-cicd-multiplatform）已归档结项**——rc3 Redmi 真机双向同步成功（fetch+merge+push 全链路）后执行 `openspec archive`；主规格 9 个全部 `validate --strict` 通过（app-shell 更新 2 条、ci-cd 新建 6 条）；桌面 127/127 零警告
-- **阶段**: **结项完成，进入日常使用期**——五平台 CI/Release 矩阵 + 移动端同步收官；排障方法论沉淀博文 `docs/blog/2026-09-28-android-rustls.md`
+- **日期**: 2026-09-29
+- **健康度**: 🟢 **add-mobile-ui-adaptation Step 4 完成**——6 文件纯前端实现（viewport/safe-area、≤760px 断点、44px 触控、bottom sheet、History 返回栈、visualViewport 键盘避让、雷达 ResizeObserver 自适应）；L1 静态审计全绿、L2 CDP 绿灯（触控 0/33 <44px、桌面护栏与基线快照逐项一致）、cargo test 127/127 零警告；🟡 仅剩 Android 真机 5 项冒烟待 adb 环境补录
+- **阶段**: **等待 ARCHIVE**——变更目录在 worktree `7a8d`（含 verification.md 红绿两轮记录）；真机补录后归档；Change 5 博文 `docs/blog/2026-09-28-android-rustls.md`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
 1. **产物冒烟（TC-R01~R08 收口）**: 下载 v0.2.1-rc3（或转正式版）五类产物 + 校验 SHA256；Windows 本机安装、Android 真机（已装 rc3 ✓）、iOS 爱思自签各至少一轮
-2. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏
+2. **移动端 UI 适配收尾**: ①Android 真机冒烟（safe-area / 系统返回关模态 / 软键盘 / 旋转雷达 / 双语言）补录 verification.md §3 ②用户回复 ARCHIVE 后 `openspec archive`；注意主工作区 H: 的同名变更目录与 PROGRESS.md 暂存改动需与本 worktree 对齐
 3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
 

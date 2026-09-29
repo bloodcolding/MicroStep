@@ -13,6 +13,7 @@ import { renderEpics } from "./render/epics.js";
 import { loadMeta, loadState, renderAll } from "./controller.js";
 import * as actions from "./actions.js";
 import * as modals from "./modals.js";
+import { observeRadarResize } from "./render/radar.js";
 import { closeModal, toast } from "./ui.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTodayLabel();
   updateLocaleToggleLabel();
   bindEvents();
+  observeRadarResize();
   loadMeta().then(loadState).catch((error) => toast(error.message, true));
 });
 
