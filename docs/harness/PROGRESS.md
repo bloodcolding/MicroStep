@@ -9,13 +9,13 @@
 
 - **日期**: 2026-10-12
 - **健康度**: 🟢 **Change 6（add-mobile-ui-adaptation）Step 3+4 实现与桌面验证完成**——TEST_PLAN 批准 → 红基线 9 FAIL → 实现 9 项全绿：静态审计 13/13、Node DOM-stub 模块图 22/22、WebView CDP 冒烟 23/23（含建 Task/觉醒/雷达/双语全链路）、`cargo test` 127/127、`cargo build` 无新增警告；实现顺带加固 History 返回栈（replaceState 防叠加 + popstate 追赶幽灵项）
-- **阶段**: **待 Android 真机冒烟（TC-D01~D08，规格强制项）+ 两项用户决策**（spec 960 措辞矛盾修订、ARCHIVE 门禁）；期间排障发现 WebView2 154 + CDP 端口启动竞态，绕过方案沉淀 ERR-004
+- **阶段**: **实现已提交并推送（`c0f7ce4`，CI 已触发）**；待 Android 真机冒烟（TC-D01~D08，规格强制项）+ 两项用户决策（spec 960 措辞矛盾修订、ARCHIVE 门禁）；收工 Check：cargo test 127/127 全绿
 - **⚠️ 远端覆盖决策（2026-10-12 用户裁定方案 B）**: github/master 上存在 09-29 另一 worktree 的同功能平行实现（`0cc4c8c` + `70d2539`，含 verification.md 与 rc4 bump），经用户决策**以本工作区实现为准 force-push 覆盖**；旧实现仍可经 tag `v0.2.1-rc4` 与本地备份分支 `backup/github-master-20261012` 追溯。注意：rc4 Release 产物对应旧实现，**Android 真机冒烟需基于当前 master 新打 tag**。
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **Android 真机冒烟（TC-D01~D08）**: 构建含新前端的 APK（本地 `npx -y @tauri-apps/cli android build` 或推 CI），Redmi Turbo 3 adb 安装实测 safe area/触控/系统返回/软键盘/旋转/双语
+1. **Android 真机冒烟（TC-D01~D08）**: ⚠️ rc4 Release 产物对应被覆盖的旧实现——需基于当前 master 新打 tag（如 `v0.2.1-rc5`）触发新 Release，或本地 `npx -y @tauri-apps/cli android build`；Redmi Turbo 3 adb 安装实测 safe area/触控/系统返回/软键盘/旋转/双语
 2. **用户决策 A · spec 措辞矛盾**: `specs/mobile-ui/spec.md`「桌面布局不回归」scenario 写"960×640 → 既有桌面双栏布局"，但 design D3 明确"保留既有 1040px 断点"（960 本就折单列，基线行为）；提议 scenario 措辞改为"1280×860 双栏、960×640 沿用既有 1040 断点折叠，均不套用移动紧凑规则"
 3. **用户决策 B · ARCHIVE**: Android 冒烟通过 + spec 措辞修订后执行 `openspec archive` 结项
 4. **产物冒烟（TC-R01~R08 收口，原有计划）**: 下一版（v0.2.1 正式或 rc4）五类产物 + SHA256；Windows 本机 / iOS 爱思自签
