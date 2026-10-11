@@ -7,15 +7,15 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-28
-- **健康度**: 🟢 **Change 5（add-cicd-multiplatform）已归档结项**——rc3 Redmi 真机双向同步成功（fetch+merge+push 全链路）后执行 `openspec archive`；主规格 9 个全部 `validate --strict` 通过（app-shell 更新 2 条、ci-cd 新建 6 条）；桌面 127/127 零警告
-- **阶段**: **结项完成，进入日常使用期**——五平台 CI/Release 矩阵 + 移动端同步收官；排障方法论沉淀博文 `docs/blog/2026-09-28-android-rustls.md`
+- **日期**: 2026-09-29
+- **健康度**: 🟢 **Change 6（add-mobile-ui-adaptation）Step 2 已获批**——零构建单入口移动 UI 方案与 OpenSpec 四件套均获用户确认，`validate --strict` 通过；本步骤后复跑 `cargo test` 127/127 全绿
+- **阶段**: **Step 3 待启动**——按会话隔离纪律，需新会话仅加载 `openspec/changes/add-mobile-ui-adaptation/`，先输出测试方案并等待 `TEST_PLAN_APPROVED`
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
 1. **产物冒烟（TC-R01~R08 收口）**: 下载 v0.2.1-rc3（或转正式版）五类产物 + 校验 SHA256；Windows 本机安装、Android 真机（已装 rc3 ✓）、iOS 爱思自签各至少一轮
-2. **移动端 UI 适配（独立变更，待排队）**: 前端 minWidth 960 桌面布局，移动包可装可跑但未适配触控/小屏
+2. **移动端 UI 适配（Step 3 待启动）**: 新会话读取 `openspec/changes/add-mobile-ui-adaptation/`，输出 `TEST_PLAN` 并等待 `TEST_PLAN_APPROVED`；批准后再进入失败测试/实现门禁
 3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
 
