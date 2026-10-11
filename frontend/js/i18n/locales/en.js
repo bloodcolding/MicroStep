@@ -37,6 +37,7 @@ export const dictionary = {
   "common.save": "Save",
   "common.create": "Create",
   "common.edit": "Edit",
+  "common.close": "Close",
   "common.unknownTime": "Unknown time",
   "common.listSeparator": ", ",
   "api.routeMissing": "Endpoint not found",

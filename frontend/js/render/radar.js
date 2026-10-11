@@ -4,17 +4,22 @@ import { getState, radarDimensionOrder } from "../state.js";
 import { dimensionName } from "../dimensions.js";
 import { clamp } from "../utils.js";
 
+// 上次绘制的 CSS 尺寸：供 ResizeObserver 回调跳过尺寸未变的重复重绘。
+let lastPaintedSize = "";
+
 export function renderRadar() {
   const state = getState();
   const canvas = document.getElementById("radarCanvas");
   if (!canvas) return;
+  const cssWidth = canvas.clientWidth;
+  const cssHeight = canvas.clientHeight;
+  // 视图隐藏（无 CSS 盒）时不绘制，显示后由 ResizeObserver / 全量渲染触发重绘。
+  if (!cssWidth || !cssHeight) return;
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
-  const cssWidth = canvas.clientWidth || 520;
-  const cssHeight = canvas.clientHeight || 460;
-  canvas.width = cssWidth * dpr;
-  canvas.height = cssHeight * dpr;
-  ctx.scale(dpr, dpr);
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const width = cssWidth;
   const height = cssHeight;
@@ -22,9 +27,12 @@ export function renderRadar() {
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.34;
   const count = radarDimensionOrder.length;
+  // 标签外边距与字号随容器收缩：小屏六维标签不被卡片 / Canvas 边界裁剪（替代固定 30px）。
+  const labelMargin = Math.max(14, Math.min(30, Math.min(width, height) * 0.07));
+  const labelFont = Math.max(10, Math.min(13, radius * 0.14));
 
   ctx.clearRect(0, 0, width, height);
-  ctx.font = "12px Inter, PingFang SC, Microsoft YaHei";
+  ctx.font = `${labelFont}px Inter, PingFang SC, Microsoft YaHei`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
@@ -53,8 +61,8 @@ export function renderRadar() {
     ctx.stroke();
 
     const label = dimensionName(radarDimensionOrder[i]);
-    const lx = cx + Math.cos(angle) * (radius + 30);
-    const ly = cy + Math.sin(angle) * (radius + 30);
+    const lx = cx + Math.cos(angle) * (radius + labelMargin);
+    const ly = cy + Math.sin(angle) * (radius + labelMargin);
     ctx.fillStyle = "#aab6cc";
     ctx.fillText(label, lx, ly);
   }
@@ -90,4 +98,23 @@ export function renderRadar() {
     ctx.fillStyle = "#e8fff3";
     ctx.fill();
   });
+
+  lastPaintedSize = `${cssWidth}x${cssHeight}`;
 }
+
+// 容器尺寸 / 屏幕方向变化时自适应重绘：优先 ResizeObserver，缺失时回退 window resize。
+function initRadarResize() {
+  const canvas = document.getElementById("radarCanvas");
+  if (!canvas) return;
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      if (`${canvas.clientWidth}x${canvas.clientHeight}` !== lastPaintedSize) {
+        renderRadar();
+      }
+    }).observe(canvas);
+  } else {
+    window.addEventListener("resize", renderRadar);
+  }
+}
+
+initRadarResize();

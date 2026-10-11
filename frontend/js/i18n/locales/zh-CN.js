@@ -37,6 +37,7 @@ export const dictionary = {
   "common.save": "保存",
   "common.create": "创建",
   "common.edit": "编辑",
+  "common.close": "关闭",
   "common.unknownTime": "未知时间",
   "common.listSeparator": "，",
   "api.routeMissing": "接口不存在",

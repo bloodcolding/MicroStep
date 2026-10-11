@@ -13,6 +13,10 @@
   --will: #c084fc;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
   --radius: 22px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 * {
@@ -40,6 +44,28 @@ select {
 
 button {
   cursor: pointer;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* 触控：消除按钮双击缩放（页面缩放能力保留），并提供键盘可达焦点反馈。 */
+button,
+.filter-toggle,
+.effect-toggle,
+.chip {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+button:active {
+  filter: brightness(1.18);
 }
 
 .topbar {
@@ -920,7 +946,7 @@ canvas {
 .modal-card {
   position: relative;
   width: min(560px, 100%);
-  max-height: calc(100vh - 40px);
+  max-height: calc(var(--app-vh, 100vh) - 40px);
   overflow: auto;
   padding: 24px;
   background: #171d2a;
@@ -1128,16 +1154,78 @@ canvas {
   }
 }
 
-@media (max-width: 680px) {
+/* 移动断点：单列布局、紧凑顶栏、触控目标、bottom sheet 模态与安全区。 */
+@media (max-width: 760px) {
   .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: calc(10px + var(--safe-top)) 14px 10px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 19px;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .brand p {
+    display: none;
+  }
+
+  .topbar-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .today-label {
+    order: 9;
+    width: 100%;
+    margin: 0;
+    font-size: 11px;
   }
 
   .shell {
     width: min(100% - 24px, 1480px);
-    padding-top: 16px;
+    padding: 14px 0 calc(48px + var(--safe-bottom));
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .simple-view,
+  .dashboard-grid,
+  .left-column,
+  .right-column {
+    gap: 14px;
+  }
+
+  .hero-card {
+    padding: 16px;
+  }
+
+  .hero-copy h2 {
+    font-size: clamp(26px, 8vw, 38px);
+  }
+
+  /* 列表自然展开，减少小屏滚动嵌套（根页面承担主滚动）。 */
+  .task-list,
+  .epic-list,
+  .event-list,
+  .effect-picker {
+    max-height: none;
   }
 
   .journal-footer,
@@ -1145,6 +1233,7 @@ canvas {
   .sub-section-head {
     align-items: stretch;
     flex-direction: column;
+    gap: 8px;
   }
 
   .journal-footer {
@@ -1165,6 +1254,15 @@ canvas {
     grid-template-columns: 1fr;
   }
 
+  .task-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .task-actions {
+    grid-column: 2;
+    justify-self: end;
+  }
+
   .effect-preview {
     text-align: left;
   }
@@ -1183,5 +1281,123 @@ canvas {
 
   .event-actions {
     grid-column: 2;
+  }
+
+  /* 触控目标 ≥44×44：视觉小控件用伪元素外扩命中区。 */
+  .primary-button,
+  .ghost-button,
+  .text-button,
+  .small-button,
+  .danger-button,
+  .settings-tab {
+    min-height: 44px;
+  }
+
+  .ghost-button {
+    padding: 10px 12px;
+  }
+
+  .icon-button {
+    position: relative;
+    width: 34px;
+    height: 34px;
+  }
+
+  .icon-button::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+  }
+
+  .task-check {
+    position: relative;
+    width: 30px;
+    height: 30px;
+  }
+
+  .task-check::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+  }
+
+  .modal-close {
+    position: relative;
+    width: 38px;
+    height: 38px;
+  }
+
+  .modal-close::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+  }
+
+  .filter-toggle,
+  .effect-toggle {
+    min-height: 44px;
+  }
+
+  /* 输入 16px：避免移动端聚焦时浏览器强制放大。 */
+  .search-input,
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    font-size: 16px;
+  }
+
+  /* 模态 bottom sheet：占满宽度、顶部圆角、底部预留安全区，高度跟随 visualViewport。 */
+  .modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: none;
+    max-height: calc(var(--app-vh, 100vh) - 24px);
+    border-radius: 22px 22px 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-card.settings-modal {
+    width: 100%;
+    max-width: none;
+  }
+
+  .toast {
+    right: 12px;
+    left: 12px;
+    bottom: calc(12px + var(--safe-bottom));
+    max-width: none;
+  }
+}
+
+/* 手机横屏（移动断点内且高度 ≤480px）：仅压缩纵向占用，不改信息结构。 */
+@media (max-width: 760px) and (max-height: 480px) {
+  .topbar {
+    padding-top: calc(6px + var(--safe-top));
+    padding-bottom: 6px;
+  }
+
+  .card,
+  .hero-card {
+    padding: 12px;
+  }
+
+  .simple-view,
+  .dashboard-grid,
+  .left-column,
+  .right-column {
+    gap: 10px;
+  }
+
+  .modal-card {
+    max-height: calc(var(--app-vh, 100vh) - 8px);
+    padding-top: 14px;
+  }
+
+  .form-field textarea {
+    min-height: 72px;
   }
 }

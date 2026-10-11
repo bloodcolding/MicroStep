@@ -7,17 +7,18 @@
 
 ## 当前状态
 
-- **日期**: 2026-09-29
-- **健康度**: 🟢 **Change 6（add-mobile-ui-adaptation）Step 2 已获批**——零构建单入口移动 UI 方案与 OpenSpec 四件套均获用户确认，`validate --strict` 通过；本步骤后复跑 `cargo test` 127/127 全绿
-- **阶段**: **Step 3 待启动**——按会话隔离纪律，需新会话仅加载 `openspec/changes/add-mobile-ui-adaptation/`，先输出测试方案并等待 `TEST_PLAN_APPROVED`
+- **日期**: 2026-10-12
+- **健康度**: 🟢 **Change 6（add-mobile-ui-adaptation）Step 3+4 实现与桌面验证完成**——TEST_PLAN 批准 → 红基线 9 FAIL → 实现 9 项全绿：静态审计 13/13、Node DOM-stub 模块图 22/22、WebView CDP 冒烟 23/23（含建 Task/觉醒/雷达/双语全链路）、`cargo test` 127/127、`cargo build` 无新增警告；实现顺带加固 History 返回栈（replaceState 防叠加 + popstate 追赶幽灵项）
+- **阶段**: **待 Android 真机冒烟（TC-D01~D08，规格强制项）+ 两项用户决策**（spec 960 措辞矛盾修订、ARCHIVE 门禁）；期间排障发现 WebView2 154 + CDP 端口启动竞态，绕过方案沉淀 ERR-004
 - **数据档案**: 全新事件流（ADR-001）；数据落 `%APPDATA%\com.microstep.app`（ADR-003）；仓库内 `data/events.jsonl` 已按 ADR-007 开源隐私清理删除（历史同步重写）
 
 ## Next Steps
 
-1. **产物冒烟（TC-R01~R08 收口）**: 下载 v0.2.1-rc3（或转正式版）五类产物 + 校验 SHA256；Windows 本机安装、Android 真机（已装 rc3 ✓）、iOS 爱思自签各至少一轮
-2. **移动端 UI 适配（Step 3 待启动）**: 新会话读取 `openspec/changes/add-mobile-ui-adaptation/`，输出 `TEST_PLAN` 并等待 `TEST_PLAN_APPROVED`；批准后再进入失败测试/实现门禁
-3. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
-4. 日常使用期：真实数据积累于 `%APPDATA%\com.microstep.app`，装机用 CI Release 产物（本地备用 `npx -y @tauri-apps/cli build`）
+1. **Android 真机冒烟（TC-D01~D08）**: 构建含新前端的 APK（本地 `npx -y @tauri-apps/cli android build` 或推 CI），Redmi Turbo 3 adb 安装实测 safe area/触控/系统返回/软键盘/旋转/双语
+2. **用户决策 A · spec 措辞矛盾**: `specs/mobile-ui/spec.md`「桌面布局不回归」scenario 写"960×640 → 既有桌面双栏布局"，但 design D3 明确"保留既有 1040px 断点"（960 本就折单列，基线行为）；提议 scenario 措辞改为"1280×860 双栏、960×640 沿用既有 1040 断点折叠，均不套用移动紧凑规则"
+3. **用户决策 B · ARCHIVE**: Android 冒烟通过 + spec 措辞修订后执行 `openspec archive` 结项
+4. **产物冒烟（TC-R01~R08 收口，原有计划）**: 下一版（v0.2.1 正式或 rc4）五类产物 + SHA256；Windows 本机 / iOS 爱思自签
+5. **Gitee 冒烟（可选，design Q2）**: 第二 provider 完整双向同步，记录 PAT 用户名形态差异
 
 ## Suspended Tasks（暂存任务区）
 
